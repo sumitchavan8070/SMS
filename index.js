@@ -44,14 +44,17 @@ app.use((req, res, next) => {
 
 const register = require("./sms_api/auth/register");
 const login = require("./sms_api/auth/login");
+const dashboard = require("./sms_api/dashboard");
 
 
-
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // -------------------------------------------------------------------------------------------------------
 
 app.use("/api/v1/auth/register", cacheMiddleware, register);
 app.use("/api/v1/auth/login", cacheMiddleware, login);
+app.use("/api/v1/dashboard", cacheMiddleware, dashboard);
 
 
 
@@ -87,5 +90,5 @@ cron.schedule("0 */12 * * *", () => {
 });
 
 app.listen(3001, () => {
-  console.log(`Server is running on http://localhost:${3001}/app/ipo-v1`);
+  console.log(`Server is running on http://localhost:${3001}/`);
 });
