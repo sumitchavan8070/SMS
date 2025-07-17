@@ -2,6 +2,10 @@
 const jwt = require("jsonwebtoken");
 const pool = require("../db");
 
+// bcrypt.hash('123456', 10).then(hash => {
+//   console.log(hash); // copy this hash
+// });
+
 const verifyToken = async (req, res, next) => {
   const authHeader = req.headers["authorization"];
 
