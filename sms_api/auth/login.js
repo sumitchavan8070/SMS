@@ -6,6 +6,7 @@ const { generateToken } = require("../utils/jwt");
 
 router.post("/", async (req, res) => {
   const { email, password } = req.body;
+  // $2b$10$gFr.ludZrCJw1E5q.HU5pe45kWJJ9XuqHbaCAGicgzkXNMuS55cAy
 
   if (!email || !password) {
     return res

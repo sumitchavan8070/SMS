@@ -10,7 +10,9 @@ const verifyToken = async (req, res, next) => {
   const authHeader = req.headers["authorization"];
 
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return res.status(401).json({ message: "Authorization header missing or invalid." });
+    return res
+      .status(401)
+      .json({ message: "Authorization header missing or invalid." });
   }
 
   const token = authHeader.split(" ")[1];
@@ -35,7 +37,7 @@ const verifyToken = async (req, res, next) => {
     next();
   } catch (error) {
     console.error("Token verification failed:", error);
-    return res.status(401).json({ message: "Invalid or expired token." });
+    return res.status(401).json({ message: "Unauthorized User" });
   }
 };
 

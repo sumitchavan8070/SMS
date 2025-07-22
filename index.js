@@ -45,6 +45,7 @@ app.use((req, res, next) => {
 const register = require("./sms_api/auth/register");
 const login = require("./sms_api/auth/login");
 const dashboard = require("./sms_api/dashboard");
+const refreshToken = require("./sms_api/auth/refresh-token");
 
 
 app.use(express.json());
@@ -55,6 +56,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use("/api/v1/auth/register", cacheMiddleware, register);
 app.use("/api/v1/auth/login", cacheMiddleware, login);
 app.use("/api/v1/dashboard", cacheMiddleware, dashboard);
+app.use("/api/v1/auth/refresh-token", cacheMiddleware, refreshToken);
 
 
 
