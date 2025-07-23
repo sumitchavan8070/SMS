@@ -22,7 +22,7 @@ router.post("/", async (req, res) => {
     const [users] = await connection.execute(
       `SELECT u.id, u.username, u.email, u.password, u.role_id, p.full_name 
    FROM users u
-   JOIN user_profiles p ON u.id = p.user_id ̰
+   JOIN user_profiles p ON u.id = p.user_id
    WHERE u.email = ?`,
       [email]
     );
@@ -40,6 +40,7 @@ router.post("/", async (req, res) => {
 
     const userHashedPassword = user.password;
     const match = await bcrypt.compare(password, userHashedPassword);
+
     if (!match) {
       console.log("❌ Passwords do not match.");
       return res.status(401).json({
