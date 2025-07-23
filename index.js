@@ -4,8 +4,7 @@ const NodeCache = require("node-cache");
 const cron = require("node-cron");
 const cache = new NodeCache({ stdTTL: 3600 });
 require("dotenv").config();
-const pool = require('./sms_api/db');
-
+const pool = require("./sms_api/db");
 
 const cacheMiddleware = (req, res, next) => {
   const key = req.originalUrl;
@@ -42,23 +41,24 @@ app.use((req, res, next) => {
 });
 // -------------------------------------------------------------------------------------------------------
 
+// Alll Imports
 const register = require("./sms_api/auth/register");
-const login = require("./sms_api/auth/login");
+const login = require("./sms_api/auth/client_login");
 const dashboard = require("./sms_api/dashboard");
 const refreshToken = require("./sms_api/auth/refresh-token");
-
+const profileUpdate = require("./sms_api/auth/profile_update");
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // -------------------------------------------------------------------------------------------------------
 
+// auth
 app.use("/api/v1/auth/register", cacheMiddleware, register);
-app.use("/api/v1/auth/login", cacheMiddleware, login);
-app.use("/api/v1/dashboard", cacheMiddleware, dashboard);
-app.use("/api/v1/auth/refresh-token", cacheMiddleware, refreshToken);
-
-
+app.use("/api/v1/auth/login", login);
+app.use("/api/v1/dashboard", dashboard);
+app.use("/api/v1/auth/refresh-token", refreshToken);
+app.use("/api/v1/auth/profile-update", profileUpdate);
 
 // -------------------------------------------------------------------------------------------------------
 app.get("/", (req, res) => {

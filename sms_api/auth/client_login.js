@@ -1,12 +1,13 @@
 const express = require("express");
-const bcrypt = require("bcrypt");
 const router = express.Router();
 const pool = require("../db");
 const { generateToken } = require("../utils/jwt");
+const bcrypt = require("bcrypt");
 
 router.post("/", async (req, res) => {
   const { email, password } = req.body;
-  // $2b$10$gFr.ludZrCJw1E5q.HU5pe45kWJJ9XuqHbaCAGicgzkXNMuS55cAy
+
+  console.warn("🔐 WARNING: Password check is being bypassed for this route!");
 
   if (!email || !password) {
     return res
@@ -20,29 +21,40 @@ router.post("/", async (req, res) => {
 
     const [users] = await connection.execute(
       `SELECT u.id, u.username, u.email, u.password, u.role_id, p.full_name 
-       FROM users u
-       JOIN user_profiles p ON u.id = p.user_id
-       WHERE u.email = ?`,
+   FROM users u
+   JOIN user_profiles p ON u.id = p.user_id ̰
+   WHERE u.email = ?`,
       [email]
     );
 
     if (users.length === 0) {
-      return res.status(401).json({ message: "Invalid email or password." });
+      console.log("❌ No user found for this email.");
+      return res.status(401).json({
+        message: "Invalid email or password.",
+      });
     }
 
     const user = users[0];
+    console.log("✅ User found:", user.email);
 
-    const match = await bcrypt.compare(password, user.password);
+
+    const userHashedPassword = user.password;
+    const match = await bcrypt.compare(password, userHashedPassword);
     if (!match) {
-      return res.status(401).json({ message: "Invalid email or password." });
+      console.log("❌ Passwords do not match.");
+      return res.status(401).json({
+        message: "Invalid email or password.",
+      });
     }
 
-    const token = generateToken({
+    const tokenPayload = {
       userId: user.id,
       roleId: user.role_id,
       email: user.email,
       username: user.username,
-    });
+    };
+
+    const token = generateToken(tokenPayload);
 
     res.json({
       message: "Login successful",
@@ -56,10 +68,12 @@ router.post("/", async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Login error:", error);
+    console.error("💥 Login error:", error);
     res.status(500).json({ message: "Internal server error" });
   } finally {
-    if (connection) connection.release();
+    if (connection) {
+      connection.release();
+    }
   }
 });
 
