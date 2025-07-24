@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const { verifyRefreshToken, generateToken } = require("../utils/jwt");
-const pool = require("../db");
+const pool = require("../connection/db");
 
 router.post("/", async (req, res) => {
   const { refreshToken } = req.body;

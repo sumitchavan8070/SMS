@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const pool = require("../db");
+const pool = require("../connection/db");
 const { generateToken } = require("../utils/jwt");
 const bcrypt = require("bcrypt");
 
@@ -22,7 +22,7 @@ router.post("/", async (req, res) => {
     const [users] = await connection.execute(
       `SELECT u.id, u.username, u.email, u.password, u.role_id, p.full_name 
    FROM users u
-   JOIN user_profiles p ON u.id = p.user_id ̰
+   JOIN user_profiles p ON u.id = p.user_id
    WHERE u.email = ?`,
       [email]
     );
@@ -36,7 +36,6 @@ router.post("/", async (req, res) => {
 
     const user = users[0];
     console.log("✅ User found:", user.email);
-
 
     const userHashedPassword = user.password;
     const match = await bcrypt.compare(password, userHashedPassword);

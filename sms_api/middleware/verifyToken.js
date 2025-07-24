@@ -1,6 +1,6 @@
 // middleware/verifyToken.js
 const jwt = require("jsonwebtoken");
-const pool = require("../db");
+const pool = require("../connection/db");
 
 // bcrypt.hash('123456', 10).then(hash => {
 //   console.log(hash); // copy this hash

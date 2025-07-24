@@ -4,7 +4,7 @@ const NodeCache = require("node-cache");
 const cron = require("node-cron");
 const cache = new NodeCache({ stdTTL: 3600 });
 require("dotenv").config();
-const pool = require("./sms_api/db");
+const pool = require("./sms_api/connection/db");
 
 const cacheMiddleware = (req, res, next) => {
   const key = req.originalUrl;
@@ -47,18 +47,31 @@ const login = require("./sms_api/auth/client_login");
 const dashboard = require("./sms_api/dashboard");
 const refreshToken = require("./sms_api/auth/refresh-token");
 const profileUpdate = require("./sms_api/auth/profile_update");
+const getProfile = require("./sms_api/auth/get_profile_by_id");
+const getRoles = require("./sms_api/auth/get_roles");
+const getParents = require("./sms_api/student/get_parents");
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // -------------------------------------------------------------------------------------------------------
 
-// auth
-app.use("/api/v1/auth/register", cacheMiddleware, register);
+
+
+// common 
 app.use("/api/v1/auth/login", login);
 app.use("/api/v1/dashboard", dashboard);
 app.use("/api/v1/auth/refresh-token", refreshToken);
 app.use("/api/v1/auth/profile-update", profileUpdate);
+app.use("/api/v1/auth/get-profile", getProfile);
+app.use("/api/v1/auth/get-roles", getRoles);
+
+//  Students Model 
+app.use("/api/v1/auth/student-register", register);
+app.use("/api/v1/auth/get-parents", getParents);
+
+
+
 
 // -------------------------------------------------------------------------------------------------------
 app.get("/", (req, res) => {
