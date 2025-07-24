@@ -58,8 +58,9 @@ app.use(express.urlencoded({ extended: true }));
 
 
 
-// common 
-app.use("/api/v1/auth/login", login);
+// auth
+app.use("/api/v1/auth/student-register", cacheMiddleware, register);
+app.use("/api/v1/auth/client-login", login);
 app.use("/api/v1/dashboard", dashboard);
 app.use("/api/v1/auth/refresh-token", refreshToken);
 app.use("/api/v1/auth/profile-update", profileUpdate);

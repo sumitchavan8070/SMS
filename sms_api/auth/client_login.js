@@ -39,6 +39,7 @@ router.post("/", async (req, res) => {
 
     const userHashedPassword = user.password;
     const match = await bcrypt.compare(password, userHashedPassword);
+
     if (!match) {
       console.log("❌ Passwords do not match.");
       return res.status(401).json({
