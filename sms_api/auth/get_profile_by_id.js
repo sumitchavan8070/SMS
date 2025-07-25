@@ -13,6 +13,7 @@ router.get("/", verifyToken, async (req, res) => {
   let connection;
   try {
     connection = await pool.getConnection();
+    
 
     const [rows] = await connection.execute(
       `SELECT up.*, u.username, u.email, r.name AS role_name

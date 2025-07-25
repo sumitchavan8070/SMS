@@ -69,7 +69,7 @@ app.use("/api/v1/auth/get-roles", getRoles);
 
 //  Students Model 
 app.use("/api/v1/auth/student-register", register);
-app.use("/api/v1/auth/get-parents", getParents);
+app.use("/api/v1/get-parents", getParents);
 
 
 

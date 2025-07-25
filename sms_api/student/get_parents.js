@@ -5,11 +5,11 @@ const pool = require("../connection/db");
 // Optional: Add verifyToken if the route should be protected
 // const verifyToken = require("../middleware/verifyToken");
 
-router.get("/:student_id", async (req, res) => {
-  const { student_id } = req.params;
+router.get("/", async (req, res) => {
+  const { userId } = req.user.id;
 
-  if (!student_id) {
-    return res.status(400).json({ message: "student_id is required" });
+  if (!userId) {
+    return res.status(400).json({ message: "userId is required" });
   }
 
   let connection;
@@ -21,8 +21,8 @@ router.get("/:student_id", async (req, res) => {
        FROM parents p
        JOIN user_profiles up ON p.user_id = up.user_id
        JOIN users u ON p.user_id = u.id
-       WHERE p.student_id = ?`,
-      [student_id]
+       WHERE p.userId = ?`,
+      [userId]
     );
 
     if (parents.length === 0) {
