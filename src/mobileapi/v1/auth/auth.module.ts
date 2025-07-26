@@ -1,0 +1,43 @@
+import { Module, MiddlewareConsumer, RequestMethod } from '@nestjs/common';
+import { JwtModule } from '@nestjs/jwt';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { TypeOrmModule } from '@nestjs/typeorm';
+
+import { AuthService } from './auth.service';
+import { AuthController } from './auth.controller';
+import { JwtStrategy } from './jwt.strategy';
+
+import { User } from '../students/entities/user.entity';
+import { UserProfile } from '../students/entities/user-profile.entity';
+import { JwtMiddleware } from 'src/config/jwt.middleware';
+
+@Module({
+  imports: [
+    ConfigModule.forRoot({ isGlobal: true }),
+    TypeOrmModule.forFeature([User, UserProfile]),
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: async (config: ConfigService) => ({
+        secret: process.env.JWT_SECRET || 'defaultSecret',
+        signOptions: {
+          expiresIn: process.env.JWT_EXPIRES_IN || '1d',
+        },
+      }),
+    }),
+  ],
+  controllers: [AuthController],
+  providers: [AuthService, JwtStrategy],
+  exports: [AuthService], // Exported if used in other modules
+})
+export class AuthModule {
+  // Optional: configure middleware here if needed
+  configure(consumer: MiddlewareConsumer) {
+    consumer
+      .apply(JwtMiddleware).exclude(
+        { path: 'auth/login', method: RequestMethod.POST },
+        { path: 'auth/register', method: RequestMethod.POST },
+      )
+      .forRoutes({ path: 'auth/protected', method: RequestMethod.GET });
+  }
+}
