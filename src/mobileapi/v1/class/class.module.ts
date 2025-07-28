@@ -1,14 +1,3 @@
-// import { Module } from '@nestjs/common';
-// import { StudentsController } from './students.controller';
-// import { StudentsService } from './students.service';
-
-// @Module({
-//   controllers: [StudentsController],
-//   providers: [StudentsService]
-// })
-// export class StudentsModule {}
-
-
 import { Module, MiddlewareConsumer, RequestMethod } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
@@ -16,8 +5,9 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from '../students/entities/user.entity';
 import { UserProfile } from '../students/entities/user-profile.entity';
 import { JwtMiddleware } from 'src/config/jwt.middleware';
-import { StudentsController } from './students.controller';
-import { StudentsService } from './students.service';
+import { ClassController } from './class.controller';
+import { ClassService } from './class.service';
+import { StudentsController } from '../students/students.controller';
 
 @Module({
   imports: [
@@ -34,27 +24,25 @@ import { StudentsService } from './students.service';
       }),
     }),
   ],
-  controllers: [StudentsController],
-  providers: [StudentsService],
-  exports: [StudentsService], // Exported if used in other modules
+  controllers: [ClassController],
+  providers: [ClassService],
+  exports: [ClassService], // Exported if used in other modules
 })
-export class StudentsModule {
+export class ClassModule {
   // Optional: configure middleware here if needed
   configure(consumer: MiddlewareConsumer) {
     consumer
       .apply(JwtMiddleware).exclude(
-    )
+        // { path: 'mobileapi/v1/auth/client-login', method: RequestMethod.POST },
+        // { path: 'mobileapi/v1/auth/client-register', method: RequestMethod.POST },
+      )
       .forRoutes(
-        StudentsController
+        ClassController
+        // { path: 'v1/auth/update-client-profile', method: RequestMethod.POST }, 
+        // { path: 'v1/auth/get-all-classes', method: RequestMethod.GET }, 
 
-        // { path: 'v1/students/get-client-parents', method: RequestMethod.GET },
-        // { path: 'v1/students/get-all-students', method: RequestMethod.GET },
-        // { path: 'v1/students/get-student-by-id', method: RequestMethod.GET },
-        // { path: 'v1/students/get-parents-by-student-id', method: RequestMethod.GET },
-
-
-
-      );
+      );  
     // .forRoutes('*');
   }
 }
+

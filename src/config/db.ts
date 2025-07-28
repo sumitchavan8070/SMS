@@ -9,7 +9,7 @@ export const pool = createPool({
   host: process.env.DB_HOST || 'localhost',
   user: process.env.DB_USERNAME || 'root',     // ✅ Fixed
   password: process.env.DB_PASSWORD || '',     // ✅ Fixed
-  database: process.env.DB_NAME || 'school_management',
+  database: process.env.DB_NAME || 'sms',
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
