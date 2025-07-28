@@ -5,7 +5,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
-import { JwtStrategy } from './jwt.strategy';
+// import { JwtMiddleware } from './jwt.strategy';
 
 import { User } from '../students/entities/user.entity';
 import { UserProfile } from '../students/entities/user-profile.entity';
@@ -27,7 +27,7 @@ import { JwtMiddleware } from 'src/config/jwt.middleware';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy],
+  providers: [AuthService],
   exports: [AuthService], // Exported if used in other modules
 })
 export class AuthModule {
@@ -35,9 +35,14 @@ export class AuthModule {
   configure(consumer: MiddlewareConsumer) {
     consumer
       .apply(JwtMiddleware).exclude(
-        { path: 'auth/login', method: RequestMethod.POST },
-        { path: 'auth/register', method: RequestMethod.POST },
+        { path: 'mobileapi/v1/auth/client-login', method: RequestMethod.POST },
+        { path: 'mobileapi/v1/auth/client-register', method: RequestMethod.POST },
       )
-      .forRoutes({ path: 'auth/protected', method: RequestMethod.GET });
+      .forRoutes(
+        { path: 'v1/auth/update-client-profile', method: RequestMethod.POST }, 
+        { path: 'v1/auth/get-client-profile', method: RequestMethod.GET }, 
+
+      );  
+    // .forRoutes('*');
   }
 }
