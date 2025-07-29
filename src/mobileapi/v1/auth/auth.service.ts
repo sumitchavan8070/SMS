@@ -13,6 +13,58 @@ export class AuthService {
     private readonly jwtService: JwtService,
   ) { }
 
+
+  private async getClassNameById(class_id: number, connection: any): Promise<string> {
+  const [rows]: any = await connection.execute(
+    `SELECT name FROM classes WHERE id = ?`,
+    [class_id]
+  );
+  return rows[0]?.name || 'NA';
+}
+
+  private async generateUserCode(
+    roleId: number,
+    admissionYear: number,
+    className: string | null,
+    rollNumber: number | null,
+    connection: any
+  ): Promise<string> {
+    const SCHOOL_CODE = 'STM';
+
+    const roleMap: Record<number, string> = {
+      1: 'PR',
+      2: 'IT',
+      3: 'AC',
+      4: 'TC',
+      5: 'ST',
+      6: 'PT',
+    };
+
+    const roleCode = roleMap[roleId];
+    let serial = '';
+
+    if (roleId === 5 && className && rollNumber !== null) {
+      serial = String(rollNumber).padStart(3, '0');
+      return `${SCHOOL_CODE}${admissionYear}${roleCode}${className}${serial}`;
+    } else if (roleId === 4 && className) {
+      const [rows]: any = await connection.execute(
+        `SELECT COUNT(*) as count FROM teachers WHERE class_id = ?`,
+        [className]
+      );
+      serial = String(rows[0].count + 1).padStart(3, '0');
+      return `${SCHOOL_CODE}${admissionYear}${roleCode}${className}${serial}`;
+    } else {
+      const table = roleId === 6 ? 'parents' : 'users';
+      const [rows]: any = await connection.execute(
+        `SELECT COUNT(*) as count FROM ${table} WHERE role_id = ?`,
+        [roleId]
+      );
+      serial = String(rows[0].count + 1).padStart(3, '0');
+      return `${SCHOOL_CODE}${admissionYear}${roleCode}${serial}`;
+    }
+  }
+
+
   async login(dto: LoginDto): Promise<any> {
     const { email, password } = dto;
 
@@ -142,123 +194,135 @@ export class AuthService {
   // }
 
 
-  async register(body: any): Promise<any> {
-    const {
-      username,
-      email,
-      password,
-      role_id,
-      full_name,
-      gender,
-      dob,
-      address,
-      phone,
-      class_id,
-      admission_date,
-      roll_number,
-      guardian_name,
-      student_id,
-    } = body;
+async register(body: any): Promise<any> {
+  const {
+    username,
+    email,
+    password,
+    role_id,
+    full_name,
+    gender,
+    dob,
+    address,
+    phone,
+    class_id,
+    admission_date,
+    roll_number,
+    guardian_name,
+    student_id,
+  } = body;
 
-    if (!username || !email || !password || !role_id || !full_name || !gender || !dob || !address || !phone) {
-      return { status: 0, message: 'Missing required fields.' };
-    }
+  if (!username || !email || !password || !role_id || !full_name || !gender || !dob || !address || !phone) {
+    return { status: 0, message: 'Missing required fields.' };
+  }
 
-    if (isNaN(Number(role_id))) {
-      return { status: 0, message: 'role_id must be a number.' };
-    }
+  if (isNaN(Number(role_id))) {
+    return { status: 0, message: 'role_id must be a number.' };
+  }
 
-    let connection;
-    try {
-      const hashedPassword = await bcrypt.hash(password, 10);
-      connection = await pool.getConnection();
-      await connection.beginTransaction();
+  let connection;
+  try {
+    const hashedPassword = await bcrypt.hash(password, 10);
+    connection = await pool.getConnection();
+    await connection.beginTransaction();
 
-      const [userResult]: any = await connection.execute(
-        `INSERT INTO users (username, email, password, role_id) VALUES (?, ?, ?, ?)`,
-        [username, email, hashedPassword, role_id]
-      );
+    const [userResult]: any = await connection.execute(
+      `INSERT INTO users (username, email, password, role_id) VALUES (?, ?, ?, ?)`,
+      [username, email, hashedPassword, role_id]
+    );
 
-      const newUserId = userResult.insertId;
+    const newUserId = userResult.insertId;
+
+    await connection.execute(
+      `INSERT INTO user_profiles (user_id, full_name, gender, dob, address, phone) VALUES (?, ?, ?, ?, ?, ?)`,
+      [newUserId, full_name, gender, dob, address, phone]
+    );
+
+    const admissionYear = admission_date ? new Date(admission_date).getFullYear() : new Date().getFullYear();
+    const className = class_id ? await this.getClassNameById(class_id, connection) : null;
+
+    const generatedCode = await this.generateUserCode(
+      Number(role_id),
+      admissionYear,
+      className,
+      roll_number ?? null,
+      connection
+    );
+
+    if (Number(role_id) === 5) {
+      if (!class_id || !admission_date || !roll_number || !guardian_name) {
+        await connection.rollback();
+        return { status: 0, message: 'Missing student fields.' };
+      }
 
       await connection.execute(
-        `INSERT INTO user_profiles (user_id, full_name, gender, dob, address, phone) VALUES (?, ?, ?, ?, ?, ?)`,
-        [newUserId, full_name, gender, dob, address, phone]
+        `INSERT INTO students (user_id, class_id, admission_date, roll_number, guardian_name, address, phone, student_code) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [newUserId, class_id, admission_date, roll_number, guardian_name, address, phone, generatedCode]
       );
+    }
 
-      if (Number(role_id) === 5) {
-        if (!class_id || !admission_date || !roll_number || !guardian_name) {
-          await connection.rollback();
-          return { status: 0, message: 'Missing student fields.' };
-        }
-
-        await connection.execute(
-          `INSERT INTO students (user_id, class_id, admission_date, roll_number, guardian_name, address, phone) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-          [newUserId, class_id, admission_date, roll_number, guardian_name, address, phone]
-        );
+    if (Number(role_id) === 6) {
+      if (!student_id) {
+        await connection.rollback();
+        return { status: 0, message: 'Missing student_id for parent.' };
       }
 
-      if (Number(role_id) === 6) {
-        if (!student_id) {
-          await connection.rollback();
-          return { status: 0, message: 'Missing student_id for parent.' };
-        }
+      await connection.execute(
+        `INSERT INTO parents (user_id, student_id, parent_code) VALUES (?, ?, ?)`,
+        [newUserId, student_id, generatedCode]
+      );
+    }
 
-        await connection.execute(
-          `INSERT INTO parents (user_id, student_id) VALUES (?, ?)`,
-          [newUserId, student_id]
-        );
-      }
+    // You may store staff codes for other roles similarly here if needed.
 
-      // ✅ Fetch the inserted user with profile for token and response
-      const [users]: any = await connection.execute(
-        `SELECT u.id, u.username, u.email, u.role_id, p.full_name 
+    const [users]: any = await connection.execute(
+      `SELECT u.id, u.username, u.email, u.role_id, p.full_name 
        FROM users u
        JOIN user_profiles p ON u.id = p.user_id
        WHERE u.id = ?`,
-        [newUserId]
-      );
+      [newUserId]
+    );
 
-      const newUser = users[0];
+    const newUser = users[0];
 
-      // ✅ Generate token
-      const payload = {
-        userId: newUser.id,
-        roleId: newUser.role_id,
-        email: newUser.email,
+    const payload = {
+      userId: newUser.id,
+      roleId: newUser.role_id,
+      email: newUser.email,
+      username: newUser.username,
+    };
+
+    const token = this.jwtService.sign(payload);
+
+    await connection.commit();
+
+    return {
+      status: 1,
+      message: 'User registered successfully',
+      token,
+      user: {
+        id: newUser.id,
         username: newUser.username,
-      };
+        email: newUser.email,
+        full_name: newUser.full_name,
+        role_id: newUser.role_id,
+        generated_code: generatedCode, // 🔑 Include generated code
+      },
+    };
+  } catch (error: any) {
+    if (connection) await connection.rollback();
+    console.error('Registration Error:', error);
 
-      const token = this.jwtService.sign(payload);
-
-      await connection.commit();
-
-      return {
-        status: 1,
-        message: 'User registered successfully',
-        token,
-        user: {
-          id: newUser.id,
-          username: newUser.username,
-          email: newUser.email,
-          full_name: newUser.full_name,
-          role_id: newUser.role_id,
-        },
-      };
-    } catch (error: any) {
-      if (connection) await connection.rollback();
-      console.error('Registration Error:', error);
-
-      if (error.code === 'ER_DUP_ENTRY') {
-        const field = error.sqlMessage.includes('username') ? 'Username' : 'Email';
-        return { status: 0, message: `${field} already exists.` };
-      }
-
-      return { status: 0, message: 'Registration failed.', error: error.message };
-    } finally {
-      if (connection) connection.release();
+    if (error.code === 'ER_DUP_ENTRY') {
+      const field = error.sqlMessage.includes('username') ? 'Username' : 'Email';
+      return { status: 0, message: `${field} already exists.` };
     }
+
+    return { status: 0, message: 'Registration failed.', error: error.message };
+  } finally {
+    if (connection) connection.release();
   }
+}
 
 
 
@@ -305,136 +369,136 @@ export class AuthService {
 
 
 
-async updateClientProfile(userId: number, roleId: number, body: any): Promise<any> {
-  const {
-    username,
-    email,
-    password,
-    full_name,
-    gender,
-    dob,
-    address,
-    phone,
-    class_id,
-    admission_date,
-    roll_number,
-    guardian_name,
-    student_id,
-  } = body;
+  async updateClientProfile(userId: number, roleId: number, body: any): Promise<any> {
+    const {
+      username,
+      email,
+      password,
+      full_name,
+      gender,
+      dob,
+      address,
+      phone,
+      class_id,
+      admission_date,
+      roll_number,
+      guardian_name,
+      student_id,
+    } = body;
 
-  if (!username || !email || !full_name || !gender || !dob || !address || !phone) {
-    return { status: 0, message: 'Missing required fields.' };
-  }
-
-  let connection;
-  try {
-    connection = await pool.getConnection();
-    await connection.beginTransaction();
-
-    // Update users table
-    if (password) {
-      const hashedPassword = await bcrypt.hash(password, 10);
-      await connection.execute(
-        `UPDATE users SET username = ?, email = ?, password = ? WHERE id = ?`,
-        [username, email, hashedPassword, userId]
-      );
-    } else {
-      await connection.execute(
-        `UPDATE users SET username = ?, email = ? WHERE id = ?`,
-        [username, email, userId]
-      );
+    if (!username || !email || !full_name || !gender || !dob || !address || !phone) {
+      return { status: 0, message: 'Missing required fields.' };
     }
 
-    // Update user_profiles table
-    await connection.execute(
-      `UPDATE user_profiles SET full_name = ?, gender = ?, dob = ?, address = ?, phone = ? WHERE user_id = ?`,
-      [full_name, gender, dob, address, phone, userId]
-    );
+    let connection;
+    try {
+      connection = await pool.getConnection();
+      await connection.beginTransaction();
 
-    // ✅ Update student table ONLY if all student fields are provided
-    const isStudentDataProvided = class_id && admission_date && roll_number && guardian_name;
-    if (isStudentDataProvided) {
-      const [studentCheck]: any = await connection.execute(
-        `SELECT id FROM students WHERE user_id = ?`,
-        [userId]
-      );
-
-      if (studentCheck.length > 0) {
+      // Update users table
+      if (password) {
+        const hashedPassword = await bcrypt.hash(password, 10);
         await connection.execute(
-          `UPDATE students SET class_id = ?, admission_date = ?, roll_number = ?, guardian_name = ?, address = ?, phone = ? WHERE user_id = ?`,
-          [class_id, admission_date, roll_number, guardian_name, address, phone, userId]
+          `UPDATE users SET username = ?, email = ?, password = ? WHERE id = ?`,
+          [username, email, hashedPassword, userId]
+        );
+      } else {
+        await connection.execute(
+          `UPDATE users SET username = ?, email = ? WHERE id = ?`,
+          [username, email, userId]
         );
       }
-    }
 
-    // ✅ Update parent records where student_id = current user
-    if (student_id) {
+      // Update user_profiles table
       await connection.execute(
-        `UPDATE parents SET address = ?, phone = ? WHERE student_id = ?`,
-        [address, phone, student_id]
+        `UPDATE user_profiles SET full_name = ?, gender = ?, dob = ?, address = ?, phone = ? WHERE user_id = ?`,
+        [full_name, gender, dob, address, phone, userId]
       );
-    }
 
-    // ✅ Fetch updated user
-    const [users]: any = await connection.execute(
-      `SELECT u.id, u.username, u.email, u.role_id, p.full_name 
+      // ✅ Update student table ONLY if all student fields are provided
+      const isStudentDataProvided = class_id && admission_date && roll_number && guardian_name;
+      if (isStudentDataProvided) {
+        const [studentCheck]: any = await connection.execute(
+          `SELECT id FROM students WHERE user_id = ?`,
+          [userId]
+        );
+
+        if (studentCheck.length > 0) {
+          await connection.execute(
+            `UPDATE students SET class_id = ?, admission_date = ?, roll_number = ?, guardian_name = ?, address = ?, phone = ? WHERE user_id = ?`,
+            [class_id, admission_date, roll_number, guardian_name, address, phone, userId]
+          );
+        }
+      }
+
+      // ✅ Update parent records where student_id = current user
+      if (student_id) {
+        await connection.execute(
+          `UPDATE parents SET address = ?, phone = ? WHERE student_id = ?`,
+          [address, phone, student_id]
+        );
+      }
+
+      // ✅ Fetch updated user
+      const [users]: any = await connection.execute(
+        `SELECT u.id, u.username, u.email, u.role_id, p.full_name 
        FROM users u
        JOIN user_profiles p ON u.id = p.user_id
        WHERE u.id = ?`,
-      [userId]
-    );
+        [userId]
+      );
 
-    const updatedUser = users[0];
+      const updatedUser = users[0];
 
-    await connection.commit();
+      await connection.commit();
 
-    return {
-      status: 1,
-      message: 'User profile updated successfully',
-      user: {
-        id: updatedUser.id,
-        username: updatedUser.username,
-        email: updatedUser.email,
-        full_name: updatedUser.full_name,
-        role_id: updatedUser.role_id,
-      },
-    };
-  } catch (error: any) {
-    if (connection) await connection.rollback();
-    console.error('Update Error:', error);
-    return { status: 0, message: 'Update failed.', error: error.message };
-  } finally {
-    if (connection) connection.release();
-  }
-}
-
-
-
-
-async getRoles():  Promise<any> {
-  let connection;
-
-  try {
-    connection = await pool.getConnection();
-    const [roles] = await connection.execute('SELECT * FROM roles');
-
-    return {
-      status: 1,
-      message: 'Roles fetched successfully',
-      roles: roles,
-    };
-  } catch (error) {
-    console.error('💥 Error fetching roles:', error);
-    return {
-      status: 0,
-      message: 'Failed to fetch roles',
-    };
-  } finally {
-    if (connection) {
-      connection.release();
+      return {
+        status: 1,
+        message: 'User profile updated successfully',
+        user: {
+          id: updatedUser.id,
+          username: updatedUser.username,
+          email: updatedUser.email,
+          full_name: updatedUser.full_name,
+          role_id: updatedUser.role_id,
+        },
+      };
+    } catch (error: any) {
+      if (connection) await connection.rollback();
+      console.error('Update Error:', error);
+      return { status: 0, message: 'Update failed.', error: error.message };
+    } finally {
+      if (connection) connection.release();
     }
   }
-}
+
+
+
+
+  async getRoles(): Promise<any> {
+    let connection;
+
+    try {
+      connection = await pool.getConnection();
+      const [roles] = await connection.execute('SELECT * FROM roles');
+
+      return {
+        status: 1,
+        message: 'Roles fetched successfully',
+        roles: roles,
+      };
+    } catch (error) {
+      console.error('💥 Error fetching roles:', error);
+      return {
+        status: 0,
+        message: 'Failed to fetch roles',
+      };
+    } finally {
+      if (connection) {
+        connection.release();
+      }
+    }
+  }
 
 
 

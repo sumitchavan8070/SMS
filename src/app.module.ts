@@ -5,6 +5,8 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { V1Module } from './mobileapi/v1/v1.module';
 import { jwtConfig } from './config/jwt.config';
 import { JwtModule } from '@nestjs/jwt';
+import { AttendanceModule } from './mobileapi/v1/attendance/attendance.module';
+import { StudentsModule } from './mobileapi/v1/students/students.module';
 
 @Module({
   imports: [
@@ -22,8 +24,13 @@ import { JwtModule } from '@nestjs/jwt';
       username: process.env.DB_USERNAME,
       password: process.env.DB_PASSWORD,
       database: process.env.DB_NAME,
+      entities: [__dirname + '/../**/*.entity.{ts,js}'], // ✅ This must include Attendance entity
+
     }),
+    
     V1Module,
+    StudentsModule, 
+    AttendanceModule
   ],
 })
 export class AppModule { }
