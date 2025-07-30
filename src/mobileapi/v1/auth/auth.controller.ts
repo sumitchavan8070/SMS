@@ -50,6 +50,12 @@ export class AuthController {
   }
 
 
+  @HttpCode(HttpStatus.OK)
+  @Get('update-all-students-code')
+  async updateAllStudentCodes(@Req() req: Request) {
+    return await this.authService.updateAllStudentCodes();
+  }
+  
 
 
 }

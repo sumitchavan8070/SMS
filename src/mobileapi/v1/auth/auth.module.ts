@@ -1,3 +1,4 @@
+// src/mobileapi/v1/auth/auth.module.ts
 import { Module, MiddlewareConsumer, RequestMethod } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
@@ -41,6 +42,7 @@ export class AuthModule {
       .forRoutes(
         { path: 'v1/auth/update-client-profile', method: RequestMethod.POST }, 
         { path: 'v1/auth/get-client-profile', method: RequestMethod.GET }, 
+        { path: 'v1/auth/update-all-students-code', method: RequestMethod.GET }, 
 
       );  
     // .forRoutes('*');

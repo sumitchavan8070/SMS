@@ -15,12 +15,14 @@ export class AuthService {
 
 
   private async getClassNameById(class_id: number, connection: any): Promise<string> {
-  const [rows]: any = await connection.execute(
-    `SELECT name FROM classes WHERE id = ?`,
-    [class_id]
-  );
-  return rows[0]?.name || 'NA';
-}
+    const [rows]: any = await connection.execute(
+      'SELECT name FROM classes WHERE id = ?',
+      [class_id]
+    );
+    // Remove 'Class' word and spaces
+    const rawName = rows[0]?.name || 'NA';
+    return rawName.replace(/class\s*/i, '').replace(/\s+/g, '');
+  }
 
   private async generateUserCode(
     roleId: number,
@@ -43,16 +45,19 @@ export class AuthService {
     const roleCode = roleMap[roleId];
     let serial = '';
 
-    if (roleId === 5 && className && rollNumber !== null) {
+    // Clean className (remove 'Class' and spaces)
+    const cleanClassName = className ? className.replace(/class\s*/i, '').replace(/\s+/g, '') : '';
+
+    if (roleId === 5 && cleanClassName && rollNumber !== null) {
       serial = String(rollNumber).padStart(3, '0');
-      return `${SCHOOL_CODE}${admissionYear}${roleCode}${className}${serial}`;
-    } else if (roleId === 4 && className) {
+      return `${SCHOOL_CODE}${admissionYear}${roleCode}${cleanClassName}${serial}`;
+    } else if (roleId === 4 && cleanClassName) {
       const [rows]: any = await connection.execute(
-        `SELECT COUNT(*) as count FROM teachers WHERE class_id = ?`,
-        [className]
+        'SELECT COUNT(*) as count FROM teachers WHERE class_id = ?',
+        [cleanClassName]
       );
       serial = String(rows[0].count + 1).padStart(3, '0');
-      return `${SCHOOL_CODE}${admissionYear}${roleCode}${className}${serial}`;
+      return `${SCHOOL_CODE}${admissionYear}${roleCode}${cleanClassName}${serial}`;
     } else {
       const table = roleId === 6 ? 'parents' : 'users';
       const [rows]: any = await connection.execute(
@@ -63,6 +68,7 @@ export class AuthService {
       return `${SCHOOL_CODE}${admissionYear}${roleCode}${serial}`;
     }
   }
+
 
 
   async login(dto: LoginDto): Promise<any> {
@@ -194,135 +200,135 @@ export class AuthService {
   // }
 
 
-async register(body: any): Promise<any> {
-  const {
-    username,
-    email,
-    password,
-    role_id,
-    full_name,
-    gender,
-    dob,
-    address,
-    phone,
-    class_id,
-    admission_date,
-    roll_number,
-    guardian_name,
-    student_id,
-  } = body;
+  async register(body: any): Promise<any> {
+    const {
+      username,
+      email,
+      password,
+      role_id,
+      full_name,
+      gender,
+      dob,
+      address,
+      phone,
+      class_id,
+      admission_date,
+      roll_number,
+      guardian_name,
+      student_id,
+    } = body;
 
-  if (!username || !email || !password || !role_id || !full_name || !gender || !dob || !address || !phone) {
-    return { status: 0, message: 'Missing required fields.' };
-  }
-
-  if (isNaN(Number(role_id))) {
-    return { status: 0, message: 'role_id must be a number.' };
-  }
-
-  let connection;
-  try {
-    const hashedPassword = await bcrypt.hash(password, 10);
-    connection = await pool.getConnection();
-    await connection.beginTransaction();
-
-    const [userResult]: any = await connection.execute(
-      `INSERT INTO users (username, email, password, role_id) VALUES (?, ?, ?, ?)`,
-      [username, email, hashedPassword, role_id]
-    );
-
-    const newUserId = userResult.insertId;
-
-    await connection.execute(
-      `INSERT INTO user_profiles (user_id, full_name, gender, dob, address, phone) VALUES (?, ?, ?, ?, ?, ?)`,
-      [newUserId, full_name, gender, dob, address, phone]
-    );
-
-    const admissionYear = admission_date ? new Date(admission_date).getFullYear() : new Date().getFullYear();
-    const className = class_id ? await this.getClassNameById(class_id, connection) : null;
-
-    const generatedCode = await this.generateUserCode(
-      Number(role_id),
-      admissionYear,
-      className,
-      roll_number ?? null,
-      connection
-    );
-
-    if (Number(role_id) === 5) {
-      if (!class_id || !admission_date || !roll_number || !guardian_name) {
-        await connection.rollback();
-        return { status: 0, message: 'Missing student fields.' };
-      }
-
-      await connection.execute(
-        `INSERT INTO students (user_id, class_id, admission_date, roll_number, guardian_name, address, phone, student_code) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-        [newUserId, class_id, admission_date, roll_number, guardian_name, address, phone, generatedCode]
-      );
+    if (!username || !email || !password || !role_id || !full_name || !gender || !dob || !address || !phone) {
+      return { status: 0, message: 'Missing required fields.' };
     }
 
-    if (Number(role_id) === 6) {
-      if (!student_id) {
-        await connection.rollback();
-        return { status: 0, message: 'Missing student_id for parent.' };
-      }
-
-      await connection.execute(
-        `INSERT INTO parents (user_id, student_id, parent_code) VALUES (?, ?, ?)`,
-        [newUserId, student_id, generatedCode]
-      );
+    if (isNaN(Number(role_id))) {
+      return { status: 0, message: 'role_id must be a number.' };
     }
 
-    // You may store staff codes for other roles similarly here if needed.
+    let connection;
+    try {
+      const hashedPassword = await bcrypt.hash(password, 10);
+      connection = await pool.getConnection();
+      await connection.beginTransaction();
 
-    const [users]: any = await connection.execute(
-      `SELECT u.id, u.username, u.email, u.role_id, p.full_name 
+      const [userResult]: any = await connection.execute(
+        `INSERT INTO users (username, email, password, role_id) VALUES (?, ?, ?, ?)`,
+        [username, email, hashedPassword, role_id]
+      );
+
+      const newUserId = userResult.insertId;
+
+      await connection.execute(
+        `INSERT INTO user_profiles (user_id, full_name, gender, dob, address, phone) VALUES (?, ?, ?, ?, ?, ?)`,
+        [newUserId, full_name, gender, dob, address, phone]
+      );
+
+      const admissionYear = admission_date ? new Date(admission_date).getFullYear() : new Date().getFullYear();
+      const className = class_id ? await this.getClassNameById(class_id, connection) : null;
+
+      const generatedCode = await this.generateUserCode(
+        Number(role_id),
+        admissionYear,
+        className,
+        roll_number ?? null,
+        connection
+      );
+
+      if (Number(role_id) === 5) {
+        if (!class_id || !admission_date || !roll_number || !guardian_name) {
+          await connection.rollback();
+          return { status: 0, message: 'Missing student fields.' };
+        }
+
+        await connection.execute(
+          `INSERT INTO students (user_id, class_id, admission_date, roll_number, guardian_name, address, phone, student_code) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          [newUserId, class_id, admission_date, roll_number, guardian_name, address, phone, generatedCode]
+        );
+      }
+
+      if (Number(role_id) === 6) {
+        if (!student_id) {
+          await connection.rollback();
+          return { status: 0, message: 'Missing student_id for parent.' };
+        }
+
+        await connection.execute(
+          `INSERT INTO parents (user_id, student_id, parent_code) VALUES (?, ?, ?)`,
+          [newUserId, student_id, generatedCode]
+        );
+      }
+
+      // You may store staff codes for other roles similarly here if needed.
+
+      const [users]: any = await connection.execute(
+        `SELECT u.id, u.username, u.email, u.role_id, p.full_name 
        FROM users u
        JOIN user_profiles p ON u.id = p.user_id
        WHERE u.id = ?`,
-      [newUserId]
-    );
+        [newUserId]
+      );
 
-    const newUser = users[0];
+      const newUser = users[0];
 
-    const payload = {
-      userId: newUser.id,
-      roleId: newUser.role_id,
-      email: newUser.email,
-      username: newUser.username,
-    };
-
-    const token = this.jwtService.sign(payload);
-
-    await connection.commit();
-
-    return {
-      status: 1,
-      message: 'User registered successfully',
-      token,
-      user: {
-        id: newUser.id,
-        username: newUser.username,
+      const payload = {
+        userId: newUser.id,
+        roleId: newUser.role_id,
         email: newUser.email,
-        full_name: newUser.full_name,
-        role_id: newUser.role_id,
-        generated_code: generatedCode, // 🔑 Include generated code
-      },
-    };
-  } catch (error: any) {
-    if (connection) await connection.rollback();
-    console.error('Registration Error:', error);
+        username: newUser.username,
+      };
 
-    if (error.code === 'ER_DUP_ENTRY') {
-      const field = error.sqlMessage.includes('username') ? 'Username' : 'Email';
-      return { status: 0, message: `${field} already exists.` };
+      const token = this.jwtService.sign(payload);
+
+      await connection.commit();
+
+      return {
+        status: 1,
+        message: 'User registered successfully',
+        token,
+        user: {
+          id: newUser.id,
+          username: newUser.username,
+          email: newUser.email,
+          full_name: newUser.full_name,
+          role_id: newUser.role_id,
+          generated_code: generatedCode, // 🔑 Include generated code
+        },
+      };
+    } catch (error: any) {
+      if (connection) await connection.rollback();
+      console.error('Registration Error:', error);
+
+      if (error.code === 'ER_DUP_ENTRY') {
+        const field = error.sqlMessage.includes('username') ? 'Username' : 'Email';
+        return { status: 0, message: `${field} already exists.` };
+      }
+
+      return { status: 0, message: 'Registration failed.', error: error.message };
+    } finally {
+      if (connection) connection.release();
     }
-
-    return { status: 0, message: 'Registration failed.', error: error.message };
-  } finally {
-    if (connection) connection.release();
   }
-}
 
 
 
@@ -501,8 +507,60 @@ async register(body: any): Promise<any> {
   }
 
 
+async  updateAllStudentCodes(): Promise<any> {
+  const connection = await pool.getConnection();
 
+  try {
+    const [students]: any = await connection.execute(`
+      SELECT 
+        s.user_id,
+        s.class_id,
+        s.admission_date,
+        s.roll_number,
+        c.name AS class_name,
+        u.role_id
+      FROM students s
+      JOIN users u ON s.user_id = u.id
+      JOIN classes c ON s.class_id = c.id
+    `);
 
+    for (const student of students) {
+      const {
+        user_id,
+        class_id,
+        admission_date,
+        roll_number,
+        class_name,
+        role_id,
+      } = student;
+
+      const admissionYear = new Date(admission_date).getFullYear();
+      const cleanedClassName = class_name.replace(/class\s*/i, '').replace(/\s+/g, '');
+
+      // Re-use your generateUserCode logic here
+      const student_code = await this.generateUserCode(
+        Number(role_id),
+        admissionYear,
+        cleanedClassName,
+        roll_number,
+        connection
+      );
+
+      await connection.execute(
+        `UPDATE students SET student_code = ? WHERE user_id = ?`,
+        [student_code, user_id]
+      );
+
+      console.log(`Updated student_code for user_id ${user_id}: ${student_code}`);
+    }
+
+    console.log('✅ All student codes updated.');
+  } catch (error) {
+    console.error('❌ Failed to update student codes:', error);
+  } finally {
+    connection.release();
+  }
+}
 
 
 

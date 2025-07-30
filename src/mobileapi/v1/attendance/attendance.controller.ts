@@ -21,9 +21,13 @@ export class AttendanceController {
   }
 
 
+  @HttpCode(HttpStatus.OK)
   @Post('mark-attendance')
-  async markAttendance(@Body() body: CreateAttendanceDto) {
-    return this.attendanceService.markAttendance(body);
+  async markAttendance(@Req() req, @Body() body: CreateAttendanceDto) {
+    const user = req['user'];
+    const roleId = user.roleId;
+
+    return this.attendanceService.markAttendance( body,roleId );
   }
 
 

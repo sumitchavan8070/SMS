@@ -18,4 +18,5 @@ export class User {
   @OneToOne(() => UserProfile, (profile) => profile.user)
   profile: UserProfile;
   role_id: any;
+  school: any;
 }

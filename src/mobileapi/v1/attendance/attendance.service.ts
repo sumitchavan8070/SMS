@@ -13,7 +13,7 @@ export class AttendanceService {
   constructor(
     @InjectRepository(Attendance)
     private readonly attendanceRepository: Repository<Attendance>,
-  ) {}
+  ) { }
 
   async getAllStudentAttendance(): Promise<{
     status: number;
@@ -118,32 +118,42 @@ export class AttendanceService {
     }
   }
 
-async markAttendance(body: CreateAttendanceDto): Promise<any> {
-  const { student_id, date, status, remarks } = body;
+  async markAttendance(body: CreateAttendanceDto, roleId: number,): Promise<any> {
+    const { student_id, date, status, remarks } = body;
 
-  try {
-    const attendance = this.attendanceRepository.create({
-      student: { id: student_id },
-      date,
-      status,
-      remarks,
-    });
+    if (roleId == 3 || roleId || 5) {
+      return {
+        status: 0,
+        message: 'You are not autorized for this task ', 
+        roleId,
 
-    const saved = await this.attendanceRepository.save(attendance);
+      };
 
-    return {
-      status: 1,
-      message: 'Attendance marked successfully',
-      data: saved,
-    };
-  } catch (error) {
-    return {
-      status: 0,
-      message: 'Error marking attendance',
-      error: error.message,
-    };
+    }
+
+    try {
+      const attendance = this.attendanceRepository.create({
+        student: { id: student_id },
+        date,
+        status,
+        remarks,
+      });
+
+      const saved = await this.attendanceRepository.save(attendance);
+
+      return {
+        status: 1,
+        message: 'Attendance marked successfully',
+        data: saved,
+      };
+    } catch (error) {
+      return {
+        status: 0,
+        message: 'Error marking attendance',
+        error: error.message,
+      };
+    }
   }
-}
 
 
 }

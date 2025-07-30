@@ -27,4 +27,5 @@ export class Student {
 
   @OneToMany(() => Attendance, attendance => attendance.student)
   attendance: Attendance[];
+  school: any;
 }
