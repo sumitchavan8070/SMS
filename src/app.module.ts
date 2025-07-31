@@ -7,6 +7,11 @@ import { jwtConfig } from './config/jwt.config';
 import { JwtModule } from '@nestjs/jwt';
 import { AttendanceModule } from './mobileapi/v1/attendance/attendance.module';
 import { StudentsModule } from './mobileapi/v1/students/students.module';
+import { StaffModule } from './mobileapi/v1/staff/staff.module';
+import { LeaveModule } from './mobileapi/v1/leave/leave.module';
+import { PerformanceModule } from './mobileapi/v1/performance/performance.module';
+import { SalaryModule } from './mobileapi/v1/salary/salary.module';
+import { SchoolModule } from './mobileapi/v1/school/school.module';
 
 @Module({
   imports: [
@@ -24,13 +29,24 @@ import { StudentsModule } from './mobileapi/v1/students/students.module';
       username: process.env.DB_USERNAME,
       password: process.env.DB_PASSWORD,
       database: process.env.DB_NAME,
-      entities: [__dirname + '/../**/*.entity.{ts,js}'], // ✅ This must include Attendance entity
+      entities: [__dirname + '/../**/*.entity{.ts,.js}'], // ✅ THIS IS CRUCIAL
+
+      synchronize: true,
+      autoLoadEntities: true, // ✅ OR add the entities array manually
 
     }),
-    
+
     V1Module,
-    StudentsModule, 
-    AttendanceModule
+    StudentsModule,
+    AttendanceModule,
+
+    StaffModule,
+    LeaveModule,
+    PerformanceModule,
+    AttendanceModule,
+    SalaryModule,
+    StudentsModule,
+    SchoolModule,
   ],
 })
 export class AppModule { }
