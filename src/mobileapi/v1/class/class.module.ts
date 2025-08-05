@@ -8,11 +8,44 @@ import { JwtMiddleware } from 'src/config/jwt.middleware';
 import { ClassController } from './class.controller';
 import { ClassService } from './class.service';
 import { StudentsController } from '../students/students.controller';
+import { Repository } from 'typeorm';
+import { Classes } from '../entities/classes.entity';
+import { Fees } from '../entities/fees.entity';
+import { Parents } from '../entities/parents.entity';
+import { PerformanceCriteria } from '../entities/performancecriteria.entity';
+import { Roles } from '../entities/roles.entity';
+import { Salaries } from '../entities/salaries.entity';
+import { Schools } from '../entities/schools.entity';
+import { Staff } from '../entities/staff.entity';
+import { StaffAttendance } from '../entities/staffattendance.entity';
+import { StaffLeaveApplications } from '../entities/staffleaveapplications.entity';
+import { StaffQualifications } from '../entities/staffqualifications.entity';
+import { Students } from '../entities/students.entity';
+import { Subjects } from '../entities/subjects.entity';
+import { UserProfiles } from '../entities/userprofiles.entity';
+import { Users } from '../entities/users.entity';
+
+
+
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
-    TypeOrmModule.forFeature([User, UserProfile]),
+    TypeOrmModule.forFeature([User, UserProfile, Users,
+      UserProfiles,
+      Students,
+      Parents,
+      Staff,
+      Classes,
+      Roles,
+      Subjects,
+      Schools,
+      Fees,
+      StaffQualifications,
+      Salaries,
+      StaffAttendance,
+      StaffLeaveApplications,
+      PerformanceCriteria,]),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -33,15 +66,15 @@ export class ClassModule {
   configure(consumer: MiddlewareConsumer) {
     consumer
       .apply(JwtMiddleware).exclude(
-        // { path: 'mobileapi/v1/auth/client-login', method: RequestMethod.POST },
-        // { path: 'mobileapi/v1/auth/client-register', method: RequestMethod.POST },
-      )
+      // { path: 'mobileapi/v1/auth/client-login', method: RequestMethod.POST },
+      // { path: 'mobileapi/v1/auth/client-register', method: RequestMethod.POST },
+    )
       .forRoutes(
         ClassController
         // { path: 'v1/auth/update-client-profile', method: RequestMethod.POST }, 
         // { path: 'v1/auth/get-all-classes', method: RequestMethod.GET }, 
 
-      );  
+      );
     // .forRoutes('*');
   }
 }

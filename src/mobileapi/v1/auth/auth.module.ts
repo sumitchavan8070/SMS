@@ -11,11 +11,18 @@ import { AuthController } from './auth.controller';
 import { User } from '../students/entities/user.entity';
 import { UserProfile } from '../students/entities/user-profile.entity';
 import { JwtMiddleware } from 'src/config/jwt.middleware';
+import { Users } from '../entities/users.entity';
+import { UserProfiles } from '../entities/userprofiles.entity';
+import { Students } from '../entities/students.entity';
+import { Parents } from '../entities/parents.entity';
+import { Classes } from '../entities/classes.entity';
+import { Staff } from '../entities/staff.entity';
+import { Roles } from '../entities/roles.entity';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
-    TypeOrmModule.forFeature([User, UserProfile]),
+    TypeOrmModule.forFeature([Users, User, UserProfile, UserProfiles, Students, Parents, Classes, Staff, Roles]),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],

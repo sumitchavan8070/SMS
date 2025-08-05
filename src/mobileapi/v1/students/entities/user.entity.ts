@@ -19,4 +19,6 @@ export class User {
   profile: UserProfile;
   role_id: any;
   school: any;
+
+  
 }

@@ -7,10 +7,6 @@ export class StudentsController {
 
     constructor(private readonly studentsService: StudentsService) { }
 
-
-
-
-
     @HttpCode(HttpStatus.OK)
     @Get('get-client-parents')
 

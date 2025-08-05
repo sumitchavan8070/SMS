@@ -6,144 +6,169 @@ import { JwtService } from '@nestjs/jwt';
 import { pool } from '../../../config/db';
 
 import { jwtConfig } from '../../../config/jwt.config';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Users } from '../entities/users.entity';
+import { Repository } from 'typeorm/repository/Repository';
+import { UserProfiles } from '../entities/userprofiles.entity';
+import { Students } from '../entities/students.entity';
+import { Parents } from '../entities/parents.entity';
+import { DataSource } from 'typeorm';
+import { Staff } from '../entities/staff.entity';
+import { Classes } from '../entities/classes.entity';
+import { Roles } from '../entities/roles.entity';
 
 @Injectable()
 export class AuthService {
+
   constructor(
+    @InjectRepository(Users) private usersRepository: Repository<Users>,
+    @InjectRepository(UserProfiles) private userProfilesRepository: Repository<UserProfiles>,
+    @InjectRepository(Students) private studentsRepository: Repository<Students>,
+    @InjectRepository(Parents) private parentsRepository: Repository<Parents>,
+    @InjectRepository(Staff) private staffRepository: Repository<Staff>,
+    @InjectRepository(Classes) private classesRepository: Repository<Classes>,
+    @InjectRepository(Roles) private rolesRepository: Repository<Roles>,
+    private dataSource: DataSource, // 👈 for transaction support
+
     private readonly jwtService: JwtService,
   ) { }
 
 
-  private async getClassNameById(class_id: number, connection: any): Promise<string> {
-    const [rows]: any = await connection.execute(
-      'SELECT name FROM classes WHERE id = ?',
-      [class_id]
-    );
-    // Remove 'Class' word and spaces
-    const rawName = rows[0]?.name || 'NA';
+  private async getClassNameById(classId: number): Promise<string> {
+    const classEntity = await this.classesRepository.findOne({
+      where: { id: classId },
+    });
+
+    const rawName = classEntity?.name || 'NA';
     return rawName.replace(/class\s*/i, '').replace(/\s+/g, '');
   }
+
 
   private async generateUserCode(
     roleId: number,
     admissionYear: number,
     className: string | null,
     rollNumber: number | null,
-    connection: any
   ): Promise<string> {
     const SCHOOL_CODE = 'STM';
 
     const roleMap: Record<number, string> = {
-      1: 'PR',
-      2: 'IT',
-      3: 'AC',
-      4: 'TC',
-      5: 'ST',
-      6: 'PT',
+      1: 'PR', // Principal
+      2: 'IT', // IT
+      3: 'AC', // Accountant
+      4: 'TC', // Teacher
+      5: 'ST', // Student
+      6: 'PT', // Parent
     };
 
     const roleCode = roleMap[roleId];
     let serial = '';
 
-    // Clean className (remove 'Class' and spaces)
-    const cleanClassName = className ? className.replace(/class\s*/i, '').replace(/\s+/g, '') : '';
+    const cleanClassName = className?.replace(/class\s*/i, '').replace(/\s+/g, '') || '';
 
+    // 🧑‍🎓 Student
     if (roleId === 5 && cleanClassName && rollNumber !== null) {
       serial = String(rollNumber).padStart(3, '0');
       return `${SCHOOL_CODE}${admissionYear}${roleCode}${cleanClassName}${serial}`;
-    } else if (roleId === 4 && cleanClassName) {
-      const [rows]: any = await connection.execute(
-        'SELECT COUNT(*) as count FROM teachers WHERE class_id = ?',
-        [cleanClassName]
-      );
-      serial = String(rows[0].count + 1).padStart(3, '0');
-      return `${SCHOOL_CODE}${admissionYear}${roleCode}${cleanClassName}${serial}`;
-    } else {
-      const table = roleId === 6 ? 'parents' : 'users';
-      const [rows]: any = await connection.execute(
-        `SELECT COUNT(*) as count FROM ${table} WHERE role_id = ?`,
-        [roleId]
-      );
-      serial = String(rows[0].count + 1).padStart(3, '0');
+    }
+
+    // 👨‍🏫 Teacher
+    // else if (roleId === 4 && cleanClassName) {
+    //   const count = await this.staffRepository.count({
+    //     where: { : cleanClassName }, // Assuming staff has classId field
+    //   });
+    //   serial = String(count + 1).padStart(3, '0');
+    //   return `${SCHOOL_CODE}${admissionYear}${roleCode}${cleanClassName}${serial}`;
+    // }
+
+    // 👨‍👩‍👧‍👦 Parent or other roles
+    else {
+      let count = 0;
+      if (roleId === 6) {
+        count = await this.parentsRepository.count({ where: { roleId } });
+      } else {
+        count = await this.usersRepository.count({ where: { roleId } });
+      }
+
+      serial = String(count + 1).padStart(3, '0');
       return `${SCHOOL_CODE}${admissionYear}${roleCode}${serial}`;
     }
   }
 
 
+  // async login(dto: LoginDto): Promise<any> {
+  //   const { email, password } = dto;
 
-  async login(dto: LoginDto): Promise<any> {
-    const { email, password } = dto;
+  //   if (!email || !password) {
+  //     return {
+  //       status: 0,
+  //       message: 'Email and password are required.',
+  //     };
+  //   }
 
-    if (!email || !password) {
-      return {
-        status: 0,
-        message: 'Email and password are required.',
-      };
-    }
+  //   let connection;
+  //   try {
+  //     connection = await pool.getConnection();
 
-    let connection;
-    try {
-      connection = await pool.getConnection();
+  //     const [users]: any = await connection.execute(
+  //       `SELECT u.id, u.username, u.email, u.password, u.role_id, p.full_name 
+  //      FROM users u
+  //      JOIN user_profiles p ON u.id = p.user_id
+  //      WHERE u.email = ?`,
+  //       [email],
+  //     );
 
-      const [users]: any = await connection.execute(
-        `SELECT u.id, u.username, u.email, u.password, u.role_id, p.full_name 
-       FROM users u
-       JOIN user_profiles p ON u.id = p.user_id
-       WHERE u.email = ?`,
-        [email],
-      );
+  //     if (users.length === 0) {
+  //       return {
+  //         status: 0,
+  //         message: 'Invalid email or password.',
+  //       };
+  //     }
 
-      if (users.length === 0) {
-        return {
-          status: 0,
-          message: 'Invalid email or password.',
-        };
-      }
+  //     const user = users[0];
+  //     const match = await bcrypt.compare(password, user.password);
 
-      const user = users[0];
-      const match = await bcrypt.compare(password, user.password);
+  //     if (!match) {
+  //       return {
+  //         status: 0,
+  //         message: 'Invalid email or password.',
+  //       };
+  //     }
 
-      if (!match) {
-        return {
-          status: 0,
-          message: 'Invalid email or password.',
-        };
-      }
+  //     const payload = {
+  //       userId: user.id,
+  //       roleId: user.role_id,
+  //       email: user.email,
+  //       username: user.username,
+  //     };
 
-      const payload = {
-        userId: user.id,
-        roleId: user.role_id,
-        email: user.email,
-        username: user.username,
-      };
+  //     const token = this.jwtService.sign(payload, {
+  //       secret: jwtConfig.secret,
+  //       expiresIn: jwtConfig.signOptions.expiresIn,
+  //     });
 
-      const token = this.jwtService.sign(payload, {
-        secret: jwtConfig.secret,
-        expiresIn: jwtConfig.signOptions.expiresIn,
-      });
-
-      return {
-        status: 1,
-        message: 'Login successful',
-        token,
-        user: {
-          id: user.id,
-          username: user.username,
-          email: user.email,
-          full_name: user.full_name,
-          role_id: user.role_id,
-        },
-      };
-    } catch (err) {
-      console.error('Login Error:', err);
-      return {
-        status: 0,
-        message: 'Login failed due to server error.',
-      };
-    } finally {
-      if (connection) connection.release();
-    }
-  }
+  //     return {
+  //       status: 1,
+  //       message: 'Login successful',
+  //       token,
+  //       user: {
+  //         id: user.id,
+  //         username: user.username,
+  //         email: user.email,
+  //         full_name: user.full_name,
+  //         role_id: user.role_id,
+  //       },
+  //     };
+  //   } catch (err) {
+  //     console.error('Login Error:', err);
+  //     return {
+  //       status: 0,
+  //       message: 'Login failed due to server error.',
+  //     };
+  //   } finally {
+  //     if (connection) connection.release();
+  //   }
+  // }
 
 
 
@@ -199,6 +224,68 @@ export class AuthService {
   //   "phone": "9123456789"
   // }
 
+  async login(dto: LoginDto): Promise<any> {
+    const { email, password } = dto;
+    try {
+      const user = await this.usersRepository.findOne({
+        where: { email },
+        relations: ['role', 'school', 'userProfiles'],
+      });
+
+      if (!user) {
+        return {
+          status: 0,
+          message: 'Invalid email or password.',
+        };
+      }
+
+
+      const isPasswordValid = await bcrypt.compare(password, user.password)
+      if (!isPasswordValid) {
+        return {
+          status: 0,
+          message: 'Invalid email or password.',
+        };
+      }
+
+
+
+      const payload = {
+        userId: user.id,
+        email: user.email,
+        roleId: user.roleId,
+      };
+
+      const access_token = this.jwtService.sign(payload, {
+        secret: jwtConfig.secret,
+        expiresIn: jwtConfig.signOptions.expiresIn,
+      });
+
+      // Safely extract full name or split into first/last name if needed
+      const fullName = user.userProfiles?.[0]?.fullName || '';
+      const [firstName = '', lastName = ''] = fullName.split(' ');
+
+      return {
+        status: 1,
+        access_token,
+        user: {
+          id: user.id,
+          firstName,
+          lastName,
+          email: user.email,
+          role: user.role,     // full role entity or customize below
+          school: user.school, // full school entity or customize below
+        },
+      };
+    } catch (err) {
+      console.error('Login Error:', err);
+      return {
+        status: 0,
+        message: 'Login failed due to server error.',
+      };
+    }
+  }
+
 
   async register(body: any): Promise<any> {
     const {
@@ -211,6 +298,7 @@ export class AuthService {
       dob,
       address,
       phone,
+      school_id,
       class_id,
       admission_date,
       roll_number,
@@ -218,7 +306,10 @@ export class AuthService {
       student_id,
     } = body;
 
-    if (!username || !email || !password || !role_id || !full_name || !gender || !dob || !address || !phone) {
+    if (
+      !username || !email || !password || !role_id || !full_name ||
+      !gender || !dob || !address || !phone || !school_id
+    ) {
       return { status: 0, message: 'Missing required fields.' };
     }
 
@@ -226,140 +317,146 @@ export class AuthService {
       return { status: 0, message: 'role_id must be a number.' };
     }
 
-    let connection;
     try {
       const hashedPassword = await bcrypt.hash(password, 10);
-      connection = await pool.getConnection();
-      await connection.beginTransaction();
 
-      const [userResult]: any = await connection.execute(
-        `INSERT INTO users (username, email, password, role_id) VALUES (?, ?, ?, ?)`,
-        [username, email, hashedPassword, role_id]
-      );
+      // Create user
+      const user = this.usersRepository.create({
+        username,
+        email,
+        password: hashedPassword,
+        roleId: role_id,
+        schoolId: school_id,
+      });
+      await this.usersRepository.save(user);
 
-      const newUserId = userResult.insertId;
+      // Create user profile
+      const userProfile = this.userProfilesRepository.create({
+        user, // relation
+        fullName: full_name,
+        gender,
+        dob,
+        address,
+        phone,
+      });
+      await this.userProfilesRepository.save(userProfile);
 
-      await connection.execute(
-        `INSERT INTO user_profiles (user_id, full_name, gender, dob, address, phone) VALUES (?, ?, ?, ?, ?, ?)`,
-        [newUserId, full_name, gender, dob, address, phone]
-      );
-
+      // Generate code (optional logic you already have)
       const admissionYear = admission_date ? new Date(admission_date).getFullYear() : new Date().getFullYear();
-      const className = class_id ? await this.getClassNameById(class_id, connection) : null;
-
+      const className = class_id ? await this.getClassNameById(class_id) : null;
       const generatedCode = await this.generateUserCode(
         Number(role_id),
         admissionYear,
         className,
         roll_number ?? null,
-        connection
       );
 
+      // Handle student
       if (Number(role_id) === 5) {
         if (!class_id || !admission_date || !roll_number || !guardian_name) {
-          await connection.rollback();
           return { status: 0, message: 'Missing student fields.' };
         }
 
-        await connection.execute(
-          `INSERT INTO students (user_id, class_id, admission_date, roll_number, guardian_name, address, phone, student_code) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-          [newUserId, class_id, admission_date, roll_number, guardian_name, address, phone, generatedCode]
-        );
+        const student = this.studentsRepository.create({
+          user,
+          classId: class_id,
+          admissionDate: admission_date,
+          rollNumber: roll_number,
+          guardianName: guardian_name,
+          address,
+          phone,
+          studentCode: generatedCode,
+          schoolId: school_id,
+        });
+        await this.studentsRepository.save(student);
       }
 
+      // Handle parent
       if (Number(role_id) === 6) {
         if (!student_id) {
-          await connection.rollback();
           return { status: 0, message: 'Missing student_id for parent.' };
         }
 
-        await connection.execute(
-          `INSERT INTO parents (user_id, student_id, parent_code) VALUES (?, ?, ?)`,
-          [newUserId, student_id, generatedCode]
-        );
+        const parent = this.parentsRepository.create({
+          user,
+          studentId: student_id,
+          parentCode: generatedCode,
+          fullName: full_name,
+          username,
+          password: hashedPassword,
+          roleId: role_id,
+          schoolId: school_id,
+        });
+        await this.parentsRepository.save(parent);
       }
 
-      // You may store staff codes for other roles similarly here if needed.
-
-      const [users]: any = await connection.execute(
-        `SELECT u.id, u.username, u.email, u.role_id, p.full_name 
-       FROM users u
-       JOIN user_profiles p ON u.id = p.user_id
-       WHERE u.id = ?`,
-        [newUserId]
-      );
-
-      const newUser = users[0];
-
+      // Generate token
       const payload = {
-        userId: newUser.id,
-        roleId: newUser.role_id,
-        email: newUser.email,
-        username: newUser.username,
+        userId: user.id,
+        roleId: role_id,
+        email: user.email,
+        username: user.username,
       };
-
       const token = this.jwtService.sign(payload);
-
-      await connection.commit();
 
       return {
         status: 1,
         message: 'User registered successfully',
         token,
         user: {
-          id: newUser.id,
-          username: newUser.username,
-          email: newUser.email,
-          full_name: newUser.full_name,
-          role_id: newUser.role_id,
-          generated_code: generatedCode, // 🔑 Include generated code
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          full_name,
+          role_id: role_id,
+          generated_code: generatedCode,
+          school_id,
         },
       };
-    } catch (error: any) {
-      if (connection) await connection.rollback();
+    } catch (error) {
       console.error('Registration Error:', error);
-
       if (error.code === 'ER_DUP_ENTRY') {
-        const field = error.sqlMessage.includes('username') ? 'Username' : 'Email';
+        const field = error.message.includes('username') ? 'Username' : 'Email';
         return { status: 0, message: `${field} already exists.` };
       }
-
       return { status: 0, message: 'Registration failed.', error: error.message };
-    } finally {
-      if (connection) connection.release();
     }
   }
 
 
 
+
   async getClientProfile(userId: number): Promise<any> {
-
-
     if (!userId) {
       return { status: 0, message: 'User ID is required.' };
     }
 
-    let connection;
     try {
-      connection = await pool.getConnection();
+      const profile = await this.userProfilesRepository.findOne({
+        where: { user: { id: userId } },
+        relations: ['user', 'user.role'],
+      });
 
-      const [rows]: any = await connection.execute(
-        `SELECT up.*, u.username, u.email, r.name AS role_name
-         FROM user_profiles up
-         JOIN users u ON up.user_id = u.id
-         JOIN roles r ON u.role_id = r.id
-         WHERE up.user_id = ?`,
-        [userId]
-      );
-
-      if (rows.length === 0) {
+      if (!profile) {
         return { status: 0, message: 'User profile not found.' };
       }
+
+      const { user } = profile;
 
       return {
         status: 1,
         message: 'User profile fetched successfully.',
-        profile: rows[0],
+        profile: {
+          id: profile.id,
+          fullName: profile.fullName,
+          gender: profile.gender,
+          dob: profile.dob,
+          address: profile.address,
+          phone: profile.phone,
+          username: user.username,
+          email: user.email,
+          role_name: user.role?.name || null,
+        },
       };
     } catch (error) {
       console.error('💥 Error fetching user profile:', error);
@@ -368,10 +465,9 @@ export class AuthService {
         message: 'Internal server error.',
         error: error.message,
       };
-    } finally {
-      if (connection) connection.release();
     }
   }
+
 
 
 
@@ -396,85 +492,72 @@ export class AuthService {
       return { status: 0, message: 'Missing required fields.' };
     }
 
-    let connection;
     try {
-      connection = await pool.getConnection();
-      await connection.beginTransaction();
+      const user = await this.usersRepository.findOne({
+        where: { id: userId },
+        relations: ['profile'],
+      });
 
-      // Update users table
-      if (password) {
-        const hashedPassword = await bcrypt.hash(password, 10);
-        await connection.execute(
-          `UPDATE users SET username = ?, email = ?, password = ? WHERE id = ?`,
-          [username, email, hashedPassword, userId]
-        );
-      } else {
-        await connection.execute(
-          `UPDATE users SET username = ?, email = ? WHERE id = ?`,
-          [username, email, userId]
-        );
+      if (!user) {
+        return { status: 0, message: 'User not found.' };
       }
 
-      // Update user_profiles table
-      await connection.execute(
-        `UPDATE user_profiles SET full_name = ?, gender = ?, dob = ?, address = ?, phone = ? WHERE user_id = ?`,
-        [full_name, gender, dob, address, phone, userId]
-      );
+      // ✅ Update users table
+      user.username = username;
+      user.email = email;
+      if (password) {
+        user.password = await bcrypt.hash(password, 10);
+      }
+      await this.usersRepository.save(user);
 
-      // ✅ Update student table ONLY if all student fields are provided
-      const isStudentDataProvided = class_id && admission_date && roll_number && guardian_name;
-      if (isStudentDataProvided) {
-        const [studentCheck]: any = await connection.execute(
-          `SELECT id FROM students WHERE user_id = ?`,
-          [userId]
-        );
+      // ✅ Update user_profiles table
+      const profile = await this.userProfilesRepository.findOneBy({ user: { id: userId } });
+      if (profile) {
+        profile.fullName = full_name;
+        profile.gender = gender;
+        profile.dob = dob;
+        profile.address = address;
+        profile.phone = phone;
+        await this.userProfilesRepository.save(profile);
+      }
 
-        if (studentCheck.length > 0) {
-          await connection.execute(
-            `UPDATE students SET class_id = ?, admission_date = ?, roll_number = ?, guardian_name = ?, address = ?, phone = ? WHERE user_id = ?`,
-            [class_id, admission_date, roll_number, guardian_name, address, phone, userId]
-          );
+      // ✅ Update student table if relevant data is provided
+      if (class_id && admission_date && roll_number && guardian_name) {
+        const student = await this.studentsRepository.findOneBy({ user: { id: userId } });
+        if (student) {
+          student.classId = class_id;
+          student.admissionDate = admission_date;
+          student.rollNumber = roll_number;
+          student.guardianName = guardian_name;
+          student.address = address;
+          student.phone = phone;
+          await this.studentsRepository.save(student);
         }
       }
 
-      // ✅ Update parent records where student_id = current user
+      // ✅ Update parents table if user is parent of current student
       if (student_id) {
-        await connection.execute(
-          `UPDATE parents SET address = ?, phone = ? WHERE student_id = ?`,
-          [address, phone, student_id]
-        );
+        const parent = await this.parentsRepository.findOneBy({ studentId: student_id });
+        if (parent) {
+
+          await this.parentsRepository.save(parent);
+        }
       }
-
-      // ✅ Fetch updated user
-      const [users]: any = await connection.execute(
-        `SELECT u.id, u.username, u.email, u.role_id, p.full_name 
-       FROM users u
-       JOIN user_profiles p ON u.id = p.user_id
-       WHERE u.id = ?`,
-        [userId]
-      );
-
-      const updatedUser = users[0];
-
-      await connection.commit();
 
       return {
         status: 1,
         message: 'User profile updated successfully',
         user: {
-          id: updatedUser.id,
-          username: updatedUser.username,
-          email: updatedUser.email,
-          full_name: updatedUser.full_name,
-          role_id: updatedUser.role_id,
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          full_name: full_name,
+          role_id: roleId,
         },
       };
-    } catch (error: any) {
-      if (connection) await connection.rollback();
+    } catch (error) {
       console.error('Update Error:', error);
       return { status: 0, message: 'Update failed.', error: error.message };
-    } finally {
-      if (connection) connection.release();
     }
   }
 
@@ -482,16 +565,13 @@ export class AuthService {
 
 
   async getRoles(): Promise<any> {
-    let connection;
-
     try {
-      connection = await pool.getConnection();
-      const [roles] = await connection.execute('SELECT * FROM roles');
+      const roles = await this.rolesRepository.find(); // fetch all roles
 
       return {
         status: 1,
         message: 'Roles fetched successfully',
-        roles: roles,
+        roles,
       };
     } catch (error) {
       console.error('💥 Error fetching roles:', error);
@@ -499,66 +579,52 @@ export class AuthService {
         status: 0,
         message: 'Failed to fetch roles',
       };
-    } finally {
-      if (connection) {
-        connection.release();
-      }
     }
   }
 
 
-async  updateAllStudentCodes(): Promise<any> {
-  const connection = await pool.getConnection();
-
+async updateAllStudentCodes(): Promise<any> {
   try {
-    const [students]: any = await connection.execute(`
-      SELECT 
-        s.user_id,
-        s.class_id,
-        s.admission_date,
-        s.roll_number,
-        c.name AS class_name,
-        u.role_id
-      FROM students s
-      JOIN users u ON s.user_id = u.id
-      JOIN classes c ON s.class_id = c.id
-    `);
+    const students = await this.studentsRepository
+      .createQueryBuilder('s')
+      .leftJoinAndSelect('s.user', 'u')
+      .leftJoinAndSelect('s.class', 'c')
+      .select([
+        's.id',
+        's.userId',
+        's.classId',
+        's.admissionDate',
+        's.rollNumber',
+        'u.roleId',
+        'c.name',
+      ])
+      .getMany();
 
     for (const student of students) {
-      const {
-        user_id,
-        class_id,
-        admission_date,
-        roll_number,
-        class_name,
-        role_id,
-      } = student;
+      const { user, classId, admissionDate, rollNumber, class: classEntity } = student;
 
-      const admissionYear = new Date(admission_date).getFullYear();
-      const cleanedClassName = class_name.replace(/class\s*/i, '').replace(/\s+/g, '');
+      const admissionYear = new Date(String(admissionDate)).getFullYear();
+      const cleanedClassName = classEntity.name.replace(/class\s*/i, '').replace(/\s+/g, '');
 
-      // Re-use your generateUserCode logic here
-      const student_code = await this.generateUserCode(
-        Number(role_id),
+      const studentCode = await this.generateUserCode(
+        Number(user.roleId),
         admissionYear,
         cleanedClassName,
-        roll_number,
-        connection
+        rollNumber,
       );
 
-      await connection.execute(
-        `UPDATE students SET student_code = ? WHERE user_id = ?`,
-        [student_code, user_id]
-      );
+      student.studentCode = studentCode;
+      await this.studentsRepository.save(student);
 
-      console.log(`Updated student_code for user_id ${user_id}: ${student_code}`);
+      console.log(`✅ Updated student_code for user_id ${user.id}: ${studentCode}`);
     }
 
-    console.log('✅ All student codes updated.');
+    console.log('🎉 All student codes updated.');
+    return { status: 1, message: 'All student codes updated successfully.' };
+
   } catch (error) {
     console.error('❌ Failed to update student codes:', error);
-  } finally {
-    connection.release();
+    return { status: 0, message: 'Failed to update student codes.', error: error.message };
   }
 }
 
