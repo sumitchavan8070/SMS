@@ -39,7 +39,7 @@ export class Users {
   @Column("int", { name: "role_id", nullable: true })
   roleId: number | null;
 
-  @Column()
+  @Column({ name: 'school_id' })
   schoolId: number ;
 
   @OneToMany(() => Announcements, (announcements) => announcements.postedBy2)
