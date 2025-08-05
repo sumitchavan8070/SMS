@@ -24,7 +24,7 @@ import { StudentsModule } from './mobileapi/v1/students/students.module';
       username: process.env.DB_USERNAME,
       password: process.env.DB_PASSWORD,
       database: process.env.DB_NAME,
-      entities: [__dirname + '/../**/*.entity.{ts,js}'], // ✅ This must include Attendance entity
+      entities: [__dirname + '/../**/*.entity.js'], // ✅ This must include Attendance entity
 
     }),
     
