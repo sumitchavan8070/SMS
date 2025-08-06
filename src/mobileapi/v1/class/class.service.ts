@@ -20,6 +20,7 @@ import { Salaries } from '../entities/salaries.entity';
 import { StaffAttendance } from '../entities/staffattendance.entity';
 import { StaffLeaveApplications } from '../entities/staffleaveapplications.entity';
 import { PerformanceCriteria } from '../entities/performancecriteria.entity';
+import { Attendance } from '../entities/attendance.entity';
 
 // [
 //   "POST /leaves/apply/:staffId",
@@ -53,6 +54,8 @@ export class ClassService {
     @InjectRepository(StaffAttendance) private staffAttendanceRepository: Repository<StaffAttendance>,
     @InjectRepository(StaffLeaveApplications) private leaveApplicationsRepository: Repository<StaffLeaveApplications>,
     @InjectRepository(PerformanceCriteria) private schoolDepartmentRepository: Repository<PerformanceCriteria>,
+    @InjectRepository(Attendance) private attendanceRepository: Repository<Attendance>,
+    
     
     
     
@@ -951,6 +954,48 @@ async getLeavesByStaff(staffId: number, status?: string): Promise<any> {
   //     if (connection) connection.release();
   //   }
   // }
+
+
+async getStudentsByClassAndSchool(
+  classId: number,
+  schoolId: number,
+)  {
+  if (!classId || !schoolId) {
+    return { status: 0, message: 'Class ID and School ID are required' };
+  }
+
+  try {
+    const students = await this.studentsRepository
+      .createQueryBuilder('s')
+      .leftJoin('s.user', 'u')
+      .leftJoin('u.userProfiles', 'up')
+      .leftJoin('s.class', 'c')
+      .select([
+        's.id AS student_id',
+        's.roll_number AS roll_number',
+        'c.name AS class_name',
+        'up.full_name AS student_name',
+      ])
+      .where('s.class_id = :classId', { classId })
+      .andWhere('s.school_id = :schoolId', { schoolId })
+      .orderBy('s.roll_number', 'ASC')
+      .getRawMany();
+
+    return {
+      status: 1,
+      message: 'Students retrieved successfully',
+      result: students,
+    };
+  } catch (error) {
+    console.error('Get Students Error:', error);
+    return {
+      status: 0,
+      message: 'Error fetching students',
+      error: error.message,
+    };
+  }
+}
+
 
 
 async getStaffDashboardByUserId(userId: number): Promise<any> {

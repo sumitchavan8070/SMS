@@ -24,6 +24,7 @@ import { Students } from '../entities/students.entity';
 import { Subjects } from '../entities/subjects.entity';
 import { UserProfiles } from '../entities/userprofiles.entity';
 import { Users } from '../entities/users.entity';
+import { Attendance } from '../entities/attendance.entity';
 
 
 
@@ -45,6 +46,7 @@ import { Users } from '../entities/users.entity';
       Salaries,
       StaffAttendance,
       StaffLeaveApplications,
+      Attendance, 
       PerformanceCriteria,]),
     JwtModule.registerAsync({
       imports: [ConfigModule],

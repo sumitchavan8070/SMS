@@ -165,6 +165,21 @@ async getStaffLeaves(
 }
 
 
+
+
+  @Get('get-students-by-class')
+  async getClassAttendance(
+    @Query('classId') classId: number,
+    @Query('schoolId') schoolId: number,
+  ) {
+    return this.classService.getStudentsByClassAndSchool(
+      Number(classId),
+      Number(schoolId),
+    );
+  }
+
+
+
 // @Post('staff/:staffId/leaves')
 // async applyLeave(
 //   @Param('staffId') staffId: number,
