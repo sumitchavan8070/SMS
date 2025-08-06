@@ -10,8 +10,8 @@ export class CreateAttendanceDto {
   @IsNotEmpty()
   date: string;
 
-  @IsEnum(['present', 'absent', 'leave'])
-  status: 'present' | 'absent' | 'leave';
+  @IsEnum(['present', 'absent', 'late'])
+  status: 'present' | 'absent' | 'late';
 
   @IsString()
   @IsOptional()

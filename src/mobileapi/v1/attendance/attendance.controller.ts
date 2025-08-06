@@ -1,6 +1,7 @@
 import { Controller, Post, Body, HttpCode, HttpStatus, UseGuards, Req, Get, Query } from '@nestjs/common';
 import { AttendanceService } from './attendance.service';
 import { CreateAttendanceDto } from './dto/create-attendance.dto';
+import { BulkAttendanceDto } from './dto/bulk-attendance.dto';
 
 @Controller('v1/attendance')
 export class AttendanceController {
@@ -29,6 +30,16 @@ export class AttendanceController {
 
 
     return this.attendanceService.markAttendance(body, roleId);
+  }
+
+  @Post('mark-students-bulk-attendance')
+  @HttpCode(HttpStatus.OK)
+  async markBulkAttendance(
+    @Body() body: BulkAttendanceDto,
+    @Req() req
+  ) {
+    const roleId = req.user?.roleId;
+    return this.attendanceService.markBulkAttendance(body, roleId);
   }
 
 

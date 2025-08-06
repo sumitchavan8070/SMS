@@ -9,6 +9,7 @@ import { Attendance } from '../entities/attendance.entity';
 import { AuthService } from '../auth/auth.service';
 import { DataSource } from 'typeorm';
 import { Users } from '../entities/users.entity';
+import { BulkAttendanceDto } from './dto/bulk-attendance.dto';
 
 
 
@@ -47,7 +48,7 @@ export class AttendanceService {
 
 
 
-      private readonly authService: AuthService, // <- ✅ Injected here
+    private readonly authService: AuthService, // <- ✅ Injected here
 
 
 
@@ -58,60 +59,60 @@ export class AttendanceService {
 
 
 
-async getAllStudentAttendance(): Promise<{
-  status: number;
-  message: string;
-  data?: any[];
-  error?: string;
-}> {
-  try {
-    const records = await this.attendanceRepository.find({
-      relations: ['student', 'student.class', 'student.user'],
-    });
+  async getAllStudentAttendance(): Promise<{
+    status: number;
+    message: string;
+    data?: any[];
+    error?: string;
+  }> {
+    try {
+      const records = await this.attendanceRepository.find({
+        relations: ['student', 'student.class', 'student.user'],
+      });
 
-    const data = await Promise.all(
-      records.map(async (att) => {
-        const userId = att.student?.user?.id;
+      const data = await Promise.all(
+        records.map(async (att) => {
+          const userId = att.student?.user?.id;
 
-  let profileData: UserProfile | null = null;
-        if (userId) {
-          const profileResult = await this.authService.getClientProfile(userId);
-          if (profileResult.status === 1) {
-            profileData = profileResult.profile;
+          let profileData: UserProfile | null = null;
+          if (userId) {
+            const profileResult = await this.authService.getClientProfile(userId);
+            if (profileResult.status === 1) {
+              profileData = profileResult.profile;
+            }
           }
-        }
 
-        return {
-          id: att.id,
-          date: att.date,
-          status: att.status,
-          remarks: att.remarks,
-          student_id: att.student?.id || null,
-          student_name: profileData?.fullName ,
-          class_name: att.student?.class?.name || '',
-          roll_number: att.student?.roll_number || '',
-          gender: profileData?.gender || '',
-          phone: profileData?.phone || '',
-          email: profileData?.email || '',
-          role: profileData?.role_name || '',
-        };
-      }),
-    );
+          return {
+            id: att.id,
+            date: att.date,
+            status: att.status,
+            remarks: att.remarks,
+            student_id: att.student?.id || null,
+            student_name: profileData?.fullName,
+            class_name: att.student?.class?.name || '',
+            roll_number: att.student?.roll_number || '',
+            gender: profileData?.gender || '',
+            phone: profileData?.phone || '',
+            email: profileData?.email || '',
+            role: profileData?.role_name || '',
+          };
+        }),
+      );
 
-    return {
-      status: 1,
-      message: 'Attendance records retrieved successfully.',
-      data,
-    };
-  } catch (error) {
-    console.error('Attendance Fetch Error:', error);
-    return {
-      status: 0,
-      message: 'Failed to fetch attendance records.',
-      error: error.message,
-    };
+      return {
+        status: 1,
+        message: 'Attendance records retrieved successfully.',
+        data,
+      };
+    } catch (error) {
+      console.error('Attendance Fetch Error:', error);
+      return {
+        status: 0,
+        message: 'Failed to fetch attendance records.',
+        error: error.message,
+      };
+    }
   }
-}
 
 
 
@@ -189,55 +190,95 @@ async getAllStudentAttendance(): Promise<{
 
 
 
-async getMonthlyAttendanceSummary(
-  roleId: number,
-  userId: number,
-  date: string
-): Promise<{
-  status: number;
-  message: string;
-  data?: any[];
-  error?: string;
-}> {
-  try {
-    const inputDate = new Date(date);
-    if (isNaN(inputDate.getTime())) {
-      return { status: 0, message: 'Invalid date format' };
-    }
-
-    const fromDate = new Date(inputDate.getFullYear(), inputDate.getMonth(), 1);
-    const toDate = new Date(inputDate.getFullYear(), inputDate.getMonth() + 1, 0);
-
-    const formattedFrom = fromDate.toISOString().split('T')[0];
-    const formattedTo = toDate.toISOString().split('T')[0];
-
-    // === STUDENT ===
-    if (roleId === 5) {
-      const student = await this.studentRepository.findOne({
-        where: { user: { id: userId } },
-        relations: ['user', 'class'],
-      });
-
-      if (!student) {
-        return { status: 0, message: 'Student not found' };
+  async getMonthlyAttendanceSummary(
+    roleId: number,
+    userId: number,
+    date: string
+  ): Promise<{
+    status: number;
+    message: string;
+    data?: any[];
+    error?: string;
+  }> {
+    try {
+      const inputDate = new Date(date);
+      if (isNaN(inputDate.getTime())) {
+        return { status: 0, message: 'Invalid date format' };
       }
 
-      const records = await this.attendanceRepository
+      const fromDate = new Date(inputDate.getFullYear(), inputDate.getMonth(), 1);
+      const toDate = new Date(inputDate.getFullYear(), inputDate.getMonth() + 1, 0);
+
+      const formattedFrom = fromDate.toISOString().split('T')[0];
+      const formattedTo = toDate.toISOString().split('T')[0];
+
+      // === STUDENT ===
+      if (roleId === 5) {
+        const student = await this.studentRepository.findOne({
+          where: { user: { id: userId } },
+          relations: ['user', 'class'],
+        });
+
+        if (!student) {
+          return { status: 0, message: 'Student not found' };
+        }
+
+        const records = await this.attendanceRepository
+          .createQueryBuilder('sa')
+          .leftJoin('sa.student', 's')
+          .leftJoin('s.user', 'u')
+          .leftJoin('u.userProfiles', 'up')
+          .leftJoin('s.class', 'c')
+          .select([
+            'sa.id AS id',
+            'sa.date AS date',
+            'sa.status AS status',
+            'sa.student_id AS student_id',
+            'up.full_name AS student_name',
+            'c.name AS class_name',
+            's.roll_number AS roll_number',
+          ])
+          .where('s.user_id = :userId', { userId })
+          .andWhere('sa.date BETWEEN :from AND :to', {
+            from: formattedFrom,
+            to: formattedTo,
+          })
+          .orderBy('sa.date', 'ASC')
+          .getRawMany();
+
+        return {
+          status: 1,
+          message: 'Student attendance retrieved successfully',
+          data: records,
+        };
+      }
+
+      // === STAFF ===
+      const staffUser = await this.userRepository.findOne({
+        where: { id: userId },
+        relations: ['role', 'userProfiles'],
+      });
+
+      if (!staffUser) {
+        return { status: 0, message: 'Staff not found' };
+      }
+
+      const records = await this.staffAttendanceRepository
         .createQueryBuilder('sa')
-        .leftJoin('sa.student', 's')
-        .leftJoin('s.user', 'u')
-        .leftJoin('u.userProfiles', 'up')
-        .leftJoin('s.class', 'c')
+        .leftJoin('users', 'u', 'sa.staff_id = u.id')
+        .leftJoin('user_profiles', 'up', 'u.id = up.user_id')
+        .leftJoin('roles', 'r', 'u.role_id = r.id')
         .select([
           'sa.id AS id',
           'sa.date AS date',
           'sa.status AS status',
-          'sa.student_id AS student_id',
-          'up.full_name AS student_name',
-          'c.name AS class_name',
-          's.roll_number AS roll_number',
+          'sa.staff_id AS staff_id',
+          'up.full_name AS staff_name',
+          'r.name AS role_name',
+          'u.username AS username',
+          'u.email AS email',
         ])
-        .where('s.user_id = :userId', { userId })
+        .where('u.id = :userId', { userId })
         .andWhere('sa.date BETWEEN :from AND :to', {
           from: formattedFrom,
           to: formattedTo,
@@ -247,80 +288,39 @@ async getMonthlyAttendanceSummary(
 
       return {
         status: 1,
-        message: 'Student attendance retrieved successfully',
+        message: 'Staff attendance retrieved successfully',
         data: records,
       };
-    }
-
-    // === STAFF ===
-    const staffUser = await this.userRepository.findOne({
-      where: { id: userId },
-      relations: ['role', 'userProfiles'],
-    });
-
-    if (!staffUser) {
-      return { status: 0, message: 'Staff not found' };
-    }
-
-    const records = await this.staffAttendanceRepository
-      .createQueryBuilder('sa')
-      .leftJoin('users', 'u', 'sa.staff_id = u.id')
-      .leftJoin('user_profiles', 'up', 'u.id = up.user_id')
-      .leftJoin('roles', 'r', 'u.role_id = r.id')
-      .select([
-        'sa.id AS id',
-        'sa.date AS date',
-        'sa.status AS status',
-        'sa.staff_id AS staff_id',
-        'up.full_name AS staff_name',
-        'r.name AS role_name',
-        'u.username AS username',
-        'u.email AS email',
-      ])
-      .where('u.id = :userId', { userId })
-      .andWhere('sa.date BETWEEN :from AND :to', {
-        from: formattedFrom,
-        to: formattedTo,
-      })
-      .orderBy('sa.date', 'ASC')
-      .getRawMany();
-
-    return {
-      status: 1,
-      message: 'Staff attendance retrieved successfully',
-      data: records,
-    };
-  } catch (error) {
-    console.error('Attendance Summary Error:', error);
-    return {
-      status: 0,
-      message: 'Error fetching attendance summary',
-      error: error.message,
-    };
-  }
-}
-
-
-
-
-  async markAttendance(body: CreateAttendanceDto, roleId: number,): Promise<any> {
-    const { student_id, date, status, remarks } = body;
-
-    if (roleId == 3 || roleId || 5) {
+    } catch (error) {
+      console.error('Attendance Summary Error:', error);
       return {
         status: 0,
-        message: 'You are not autorized for this task ',
-        roleId,
-
+        message: 'Error fetching attendance summary',
+        error: error.message,
       };
+    }
+  }
 
+
+
+
+  async markAttendance(body: CreateAttendanceDto, roleId: number): Promise<any> {
+    const { student_id, date, status, remarks } = body;
+
+    if (roleId === 5 || roleId === 6) {
+      return {
+        status: 0,
+        message: 'You are not authorized for this task',
+      };
     }
 
     try {
+      const student = await this.studentRepository.findOneByOrFail({ id: student_id });
+
       const attendance = this.attendanceRepository.create({
-        student: { id: student_id },
+        student,
         date,
-        // status,
+        status, // Must match allowed enum values
         remarks,
       });
 
@@ -338,6 +338,53 @@ async getMonthlyAttendanceSummary(
         error: error.message,
       };
     }
+  }
+
+
+  async markBulkAttendance(body: BulkAttendanceDto, roleId: number): Promise<any> {
+    if (roleId === 5 || roleId === 6) {
+      return {
+        status: 0,
+        message: 'You are not authorized for this task',
+      };
+    }
+
+    const results: {
+      student_id: number;
+      status: number;
+      data?: Attendance;
+      error?: string;
+    }[] = [];
+
+
+    for (const record of body.records) {
+      try {
+        const { student_id, date, status, remarks } = record;
+        const student = await this.studentRepository.findOneByOrFail({ id: student_id });
+
+        const attendance = this.attendanceRepository.create({
+          student,
+          date,
+          status,
+          remarks,
+        });
+
+        const saved = await this.attendanceRepository.save(attendance);
+        results.push({ student_id, status: 1, data: saved });
+      } catch (error) {
+        results.push({
+          student_id: record.student_id,
+          status: 0,
+          error: error.message,
+        });
+      }
+    }
+
+    return {
+      status: 1,
+      message: 'Bulk attendance processed',
+      results,
+    };
   }
 
 
