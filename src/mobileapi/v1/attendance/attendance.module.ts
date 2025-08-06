@@ -6,19 +6,26 @@ import { UserProfile } from '../students/entities/user-profile.entity';
 import { JwtMiddleware } from 'src/config/jwt.middleware';
 import { AttendanceController } from './attendance.controller';
 import { AttendanceService } from './attendance.service';
-import { Attendance } from './entities/attendance.entity';
-import { Student } from './entities/student.entity';
-import { Class } from './entities/class.entity';
+import { Students } from '../entities/students.entity';
+import { StaffAttendance } from '../entities/staffattendance.entity';
+import { Staff } from '../entities/staff.entity';
+import { Attendance } from '../entities/attendance.entity';
+import { AuthService } from '../auth/auth.service';
+import { AuthModule } from '../auth/auth.module';
+import { Users } from '../entities/users.entity';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     TypeOrmModule.forFeature([
       Attendance,
-      Student,
       UserProfile,
-      Class,
+      Students, 
+      Staff, 
+      StaffAttendance,
+      Users
     ]),
+    AuthModule, 
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],

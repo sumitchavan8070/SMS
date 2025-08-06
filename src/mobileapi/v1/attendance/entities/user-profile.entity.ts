@@ -1,23 +1,23 @@
-import { Entity, PrimaryColumn, Column, OneToOne } from 'typeorm';
+// import { Entity, PrimaryColumn, Column, OneToOne } from 'typeorm';
 
-@Entity('user_profiles')
-export class UserProfile {
-  @PrimaryColumn()
-  user_id: number;
+// @Entity('user_profiles')
+// export class UserProfile {
+//   @PrimaryColumn()
+//   user_id: number;
 
-  @Column()
-  full_name: string;
+//   @Column()
+//   full_name: string;
 
-  @Column()
-  gender: string;
+//   @Column()
+//   gender: string;
 
-  @Column()
-  dob: Date;
+//   @Column()
+//   dob: Date;
 
-  @Column()
-  address: string;
+//   @Column()
+//   address: string;
 
-  @Column()
-  phone: string;
-}
+//   @Column()
+//   phone: string;
+// }
 

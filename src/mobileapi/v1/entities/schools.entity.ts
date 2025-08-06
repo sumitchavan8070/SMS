@@ -30,6 +30,7 @@ import { Users } from './users.entity';
 @Index("code", ["code"], { unique: true })
 @Entity("schools", { schema: "sms" })
 export class Schools {
+  [x: string]: any;
   @PrimaryGeneratedColumn({ type: "int", name: "id" })
   id: number;
 

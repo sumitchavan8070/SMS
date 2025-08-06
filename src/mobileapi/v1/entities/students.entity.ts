@@ -83,4 +83,5 @@ export class Students {
   })
   @JoinColumn([{ name: "school_id", referencedColumnName: "id" }])
   school: Schools;
+  roll_number: string;
 }

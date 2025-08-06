@@ -1,4 +1,4 @@
-import { Controller, Post, Body, HttpCode, HttpStatus, UseGuards, Req, Get } from '@nestjs/common';
+import { Controller, Post, Body, HttpCode, HttpStatus, UseGuards, Req, Get, Query } from '@nestjs/common';
 import { AttendanceService } from './attendance.service';
 import { CreateAttendanceDto } from './dto/create-attendance.dto';
 
@@ -13,12 +13,12 @@ export class AttendanceController {
     return this.attendanceService.getAllStudentAttendance();
   }
 
-  @HttpCode(HttpStatus.OK)
-  @Post('get-attendance-by-user-and-date')
-  getAttendanceByDate(@Req() req, @Body() body) {
-    
-    return this.attendanceService.getAttendanceByDateRange(req.user, body);
+  @Get('get-attendance-by-user-and-date')
+  getAttendanceByDate(@Query('date') date: string, @Req() req) {
+    const user = req.user;
+    return this.attendanceService.getMonthlyAttendanceSummary(user.roleId, user.userId, date);
   }
+
 
 
   @HttpCode(HttpStatus.OK)
@@ -27,7 +27,8 @@ export class AttendanceController {
     const user = req['user'];
     const roleId = user.roleId;
 
-    return this.attendanceService.markAttendance( body,roleId );
+
+    return this.attendanceService.markAttendance(body, roleId);
   }
 
 

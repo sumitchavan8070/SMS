@@ -58,4 +58,6 @@ export class StaffAttendance {
   })
   @JoinColumn([{ name: "staff_table_id", referencedColumnName: "id" }])
   staffTable: Staff;
+
+  
 }
