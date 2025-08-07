@@ -27,9 +27,9 @@ import { StudentsModule } from './mobileapi/v1/students/students.module';
       entities: [__dirname + '/../**/*.entity.js'], // ✅ This must include Attendance entity
 
     }),
-    
+
     V1Module,
-    StudentsModule, 
+    StudentsModule,
     AttendanceModule
   ],
 })

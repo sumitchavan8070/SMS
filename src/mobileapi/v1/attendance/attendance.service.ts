@@ -341,7 +341,7 @@ export class AttendanceService {
   }
 
 
-  async markBulkAttendance(body: BulkAttendanceDto, roleId: number): Promise<any> {
+  async markBulkAttendance(body: BulkAttendanceDto, roleId: number, schoolId: number): Promise<any> {
     if (roleId === 5 || roleId === 6) {
       return {
         status: 0,
@@ -356,10 +356,10 @@ export class AttendanceService {
       error?: string;
     }[] = [];
 
-
     for (const record of body.records) {
       try {
         const { student_id, date, status, remarks } = record;
+
         const student = await this.studentRepository.findOneByOrFail({ id: student_id });
 
         const attendance = this.attendanceRepository.create({
@@ -367,6 +367,7 @@ export class AttendanceService {
           date,
           status,
           remarks,
+          schoolId, // ✅ add schoolId here from function param
         });
 
         const saved = await this.attendanceRepository.save(attendance);

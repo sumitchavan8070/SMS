@@ -39,9 +39,8 @@ export class AttendanceController {
     @Req() req
   ) {
     const roleId = req.user?.roleId;
-    return this.attendanceService.markBulkAttendance(body, roleId);
+    const schoolId = req.user?.schoolId; 
+    return this.attendanceService.markBulkAttendance(body, roleId, schoolId);
   }
-
-
 
 }
