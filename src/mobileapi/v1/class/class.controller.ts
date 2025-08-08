@@ -157,44 +157,48 @@ export class ClassController {
   }
 
   @Get('staff/:staffId/leaves')
-async getStaffLeaves(
-  @Param('staffId') staffId: number,
-  @Query('status') status?: string
-) {
-  return this.classService.getLeavesByStaff(staffId, status);
-}
+  async getStaffLeaves(
+    @Param('staffId') staffId: number,
+    @Query('status') status?: string
+  ) {
+    return this.classService.getLeavesByStaff(staffId, status);
+  }
 
 
 
 
   @Get('get-students-by-class')
   async getClassAttendance(
-    @Query('classId') classId: number,
     @Query('schoolId') schoolId: number,
+    @Query('date') date: string,
+    @Req() req: Request,
   ) {
+    const user = req['user'];
+    const userId = user.userId;
     return this.classService.getStudentsByClassAndSchool(
-      Number(classId),
+      Number(userId),
       Number(schoolId),
+      date
     );
   }
 
 
 
-// @Post('staff/:staffId/leaves')
-// async applyLeave(
-//   @Param('staffId') staffId: number,
-//   @Body() dto: ApplyLeaveDto
-// ) {
-//   return this.leaveService.applyForLeave(staffId, dto);
-// }
+  // @Post('staff/:staffId/leaves')
+  // async applyLeave(
+  //   @Param('staffId') staffId: number,
+  //   @Body() dto: ApplyLeaveDto
+  // ) {
+  //   return this.leaveService.applyForLeave(staffId, dto);
+  // }
 
-// @Patch('leaves/:leaveId/approval')
-// async updateLeaveStatus(
-//   @Param('leaveId') leaveId: number,
-//   @Body() dto: { status: 'approved' | 'rejected'; approved_by: number; rejection_reason?: string }
-// ) {
-//   return this.leaveService.updateLeaveStatus(leaveId, dto);
-// }
+  // @Patch('leaves/:leaveId/approval')
+  // async updateLeaveStatus(
+  //   @Param('leaveId') leaveId: number,
+  //   @Body() dto: { status: 'approved' | 'rejected'; approved_by: number; rejection_reason?: string }
+  // ) {
+  //   return this.leaveService.updateLeaveStatus(leaveId, dto);
+  // }
 
 }
 

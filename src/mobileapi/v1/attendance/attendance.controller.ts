@@ -39,7 +39,7 @@ export class AttendanceController {
     @Req() req
   ) {
     const roleId = req.user?.roleId;
-    const schoolId = req.user?.schoolId; 
+    const schoolId = req.user?.school_id; 
     return this.attendanceService.markBulkAttendance(body, roleId, schoolId);
   }
 

@@ -957,10 +957,11 @@ async getLeavesByStaff(staffId: number, status?: string): Promise<any> {
 
 
 async getStudentsByClassAndSchool(
-  classId: number,
+  classTeacherId: number,
   schoolId: number,
-)  {
-  if (!classId || !schoolId) {
+  date: string, // <-- pass your manual date here
+) {
+  if (!classTeacherId || !schoolId) {
     return { status: 0, message: 'Class ID and School ID are required' };
   }
 
@@ -970,14 +971,19 @@ async getStudentsByClassAndSchool(
       .leftJoin('s.user', 'u')
       .leftJoin('u.userProfiles', 'up')
       .leftJoin('s.class', 'c')
-      .select([
-        's.id AS student_id',
-        's.roll_number AS roll_number',
-        'c.name AS class_name',
-        'up.full_name AS student_name',
-      ])
-      .where('s.class_id = :classId', { classId })
-      .andWhere('s.school_id = :schoolId', { schoolId })
+      .leftJoin('attendance', 'a', 'a.student_id = s.id AND a.date = :date  ', {
+        date,
+      })
+      .select('s.id', 'student_id')
+      .addSelect('s.roll_number', 'roll_number')
+      .addSelect('c.name', 'class_name')
+      .addSelect('MAX(up.full_name)', 'student_name')
+      .addSelect('a.status', 'attendance_status')
+      .where('c.class_teacher_id = :classId', { classId: Number(classTeacherId) })
+      .groupBy('s.id')
+      .addGroupBy('s.roll_number')
+      .addGroupBy('c.name')
+      .addGroupBy('a.status')
       .orderBy('s.roll_number', 'ASC')
       .getRawMany();
 
