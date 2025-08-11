@@ -1040,6 +1040,7 @@ async getStudentsByClassAndSchool(
     return {
       status: 1,
       message: 'Students retrieved successfully',
+      sumit: "i am the developer ", 
       totalStudents,
       presentStudents,
       absentStudents,
