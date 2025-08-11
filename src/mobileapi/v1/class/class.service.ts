@@ -956,7 +956,7 @@ async getLeavesByStaff(staffId: number, status?: string): Promise<any> {
   // }
 
 
-async getStudentsByClassAndSchool(
+async getStudentsByClassAndSchoolv1(
   classTeacherId: number,
   schoolId: number,
   date: string, // <-- pass your manual date here
@@ -1001,6 +1001,61 @@ async getStudentsByClassAndSchool(
     };
   }
 }
+
+async getStudentsByClassAndSchool(
+  classTeacherId: number,
+  schoolId: number,
+  date: string, // <-- pass your manual date here
+) {
+  if (!classTeacherId || !schoolId) {
+    return { status: 0, message: 'Class ID and School ID are required' };
+  }
+
+  try {
+    const students = await this.studentsRepository
+      .createQueryBuilder('s')
+      .leftJoin('s.user', 'u')
+      .leftJoin('u.userProfiles', 'up')
+      .leftJoin('s.class', 'c')
+      .leftJoin('attendance', 'a', 'a.student_id = s.id AND a.date = :date', { date })
+      .select('s.id', 'student_id')
+      .addSelect('s.roll_number', 'roll_number')
+      .addSelect('c.name', 'class_name')
+      .addSelect('MAX(up.full_name)', 'student_name')
+      .addSelect('a.status', 'attendance_status')
+      .where('c.class_teacher_id = :classId', { classId: Number(classTeacherId) })
+      .groupBy('s.id')
+      .addGroupBy('s.roll_number')
+      .addGroupBy('c.name')
+      .addGroupBy('a.status')
+      .orderBy('s.roll_number', 'ASC')
+      .getRawMany();
+
+    // Calculate counts
+    const totalStudents = students.length;
+    const presentStudents = students.filter(s => s.attendance_status === 'present').length;
+    const absentStudents = students.filter(s => s.attendance_status === 'absent').length;
+    const leaveStudents = students.filter(s => s.attendance_status === 'leave').length;
+
+    return {
+      status: 1,
+      message: 'Students retrieved successfully',
+      totalStudents,
+      presentStudents,
+      absentStudents,
+      leaveStudents,
+      result: students,
+    };
+  } catch (error) {
+    console.error('Get Students Error:', error);
+    return {
+      status: 0,
+      message: 'Error fetching students',
+      error: error.message,
+    };
+  }
+}
+
 
 
 
