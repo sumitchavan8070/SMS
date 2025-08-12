@@ -169,18 +169,34 @@ export class ClassController {
 
   @Get('get-students-by-class')
   async getClassAttendance(
-    @Query('schoolId') schoolId: number,
+    // @Query('schoolId') schoolId: number,
     @Query('date') date: string,
     @Req() req: Request,
   ) {
     const user = req['user'];
     const userId = user.userId;
+    const schoolId = user.school_id;
+
     return this.classService.getStudentsByClassAndSchool(
       Number(userId),
       Number(schoolId),
       date
     );
   }
+
+  @Get('get-fees-list-by-class-teacher')
+  async getFeesListByClassTeacher(
+    @Req() req: Request,
+  ) {
+    const user = req['user'];
+    const userId = user.userId;
+    const schoolId = user.school_id;
+
+    return this.classService.getFeesListByClassTeacher(
+      Number(userId),
+    );
+  }
+
 
 
 

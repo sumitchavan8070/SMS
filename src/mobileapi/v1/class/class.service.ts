@@ -59,6 +59,7 @@ export class ClassService {
     
     
     
+    
 
 
 
@@ -956,51 +957,6 @@ async getLeavesByStaff(staffId: number, status?: string): Promise<any> {
   // }
 
 
-async getStudentsByClassAndSchoolv1(
-  classTeacherId: number,
-  schoolId: number,
-  date: string, // <-- pass your manual date here
-) {
-  if (!classTeacherId || !schoolId) {
-    return { status: 0, message: 'Class ID and School ID are required' };
-  }
-
-  try {
-    const students = await this.studentsRepository
-      .createQueryBuilder('s')
-      .leftJoin('s.user', 'u')
-      .leftJoin('u.userProfiles', 'up')
-      .leftJoin('s.class', 'c')
-      .leftJoin('attendance', 'a', 'a.student_id = s.id AND a.date = :date  ', {
-        date,
-      })
-      .select('s.id', 'student_id')
-      .addSelect('s.roll_number', 'roll_number')
-      .addSelect('c.name', 'class_name')
-      .addSelect('MAX(up.full_name)', 'student_name')
-      .addSelect('a.status', 'attendance_status')
-      .where('c.class_teacher_id = :classId', { classId: Number(classTeacherId) })
-      .groupBy('s.id')
-      .addGroupBy('s.roll_number')
-      .addGroupBy('c.name')
-      .addGroupBy('a.status')
-      .orderBy('s.roll_number', 'ASC')
-      .getRawMany();
-
-    return {
-      status: 1,
-      message: 'Students retrieved successfully',
-      result: students,
-    };
-  } catch (error) {
-    console.error('Get Students Error:', error);
-    return {
-      status: 0,
-      message: 'Error fetching students',
-      error: error.message,
-    };
-  }
-}
 
 async getStudentsByClassAndSchool(
   classTeacherId: number,
@@ -1017,17 +973,24 @@ async getStudentsByClassAndSchool(
       .leftJoin('s.user', 'u')
       .leftJoin('u.userProfiles', 'up')
       .leftJoin('s.class', 'c')
-      .leftJoin('attendance', 'a', 'a.student_id = s.id AND a.date = :date', { date })
+      .leftJoin(
+        'attendance',
+        'a',
+        'a.student_id = s.id AND a.date = :date',
+        { date }
+      )
       .select('s.id', 'student_id')
       .addSelect('s.roll_number', 'roll_number')
       .addSelect('c.name', 'class_name')
       .addSelect('MAX(up.full_name)', 'student_name')
       .addSelect('a.status', 'attendance_status')
+      .addSelect('a.remarks', 'attendance_remarks') // <-- Added remarks
       .where('c.class_teacher_id = :classId', { classId: Number(classTeacherId) })
       .groupBy('s.id')
       .addGroupBy('s.roll_number')
       .addGroupBy('c.name')
       .addGroupBy('a.status')
+      .addGroupBy('a.remarks') // <-- Important: group by remarks too
       .orderBy('s.roll_number', 'ASC')
       .getRawMany();
 
@@ -1040,7 +1003,6 @@ async getStudentsByClassAndSchool(
     return {
       status: 1,
       message: 'Students retrieved successfully',
-      sumit: "i am the developer ", 
       totalStudents,
       presentStudents,
       absentStudents,
@@ -1056,6 +1018,7 @@ async getStudentsByClassAndSchool(
     };
   }
 }
+
 
 
 
@@ -1532,6 +1495,51 @@ async getStaffSummaryBySchool(schoolId: number): Promise<any> {
     return {
       status: 0,
       message: 'Internal server error.',
+      error: error.message,
+    };
+  }
+}
+
+
+// 
+async getFeesListByClassTeacher(classTeacherId: number) {
+  if (!classTeacherId) {
+    return { status: 0, message: 'Class teacher ID is required' };
+  }
+
+  try {
+    // Fetch raw results with QueryBuilder and getRawMany to get flat fields
+    const feesList = await this.feesRepository
+      .createQueryBuilder('f')
+      .innerJoin('f.student', 's')
+      .innerJoin('s.user', 'u')
+      .innerJoin('u.userProfiles', 'up')
+      .innerJoin('s.class', 'c')
+      .select([
+        'f.id AS id',
+        'f.amount AS amount',
+        'f.due_date AS due_date',
+        'f.fee_type AS fee_type',
+        'f.status AS status',
+        'f.term AS term',
+        'up.full_name AS student_name',
+        's.roll_number AS roll_number',
+        'c.name AS class_name',
+      ])
+      .where('c.class_teacher_id = :classTeacherId', { classTeacherId })
+      .orderBy('s.roll_number', 'ASC')
+      .getRawMany();
+
+    return {
+      status: 1,
+      message: 'Fees list retrieved successfully',
+      result: feesList,
+    };
+  } catch (error) {
+    console.error('Error fetching fees list:', error);
+    return {
+      status: 0,
+      message: 'Failed to fetch fees list',
       error: error.message,
     };
   }
