@@ -1502,6 +1502,11 @@ async getStaffSummaryBySchool(schoolId: number): Promise<any> {
 
 
 // 
+
+
+
+// Sumit
+
 async getFeesListByClassTeacher(classTeacherId: number) {
   if (!classTeacherId) {
     return { status: 0, message: 'Class teacher ID is required' };
