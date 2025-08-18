@@ -34,7 +34,7 @@ export class Staff {
   @Column("int", { name: "user_id" })
   userId: number;
 
-  @Column()
+  @Column({ name: 'school_id' })   // 👈 FIX HERE
   schoolId: number;
 
   @Column("enum", {

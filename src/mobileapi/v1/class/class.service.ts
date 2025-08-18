@@ -21,6 +21,7 @@ import { StaffAttendance } from '../entities/staffattendance.entity';
 import { StaffLeaveApplications } from '../entities/staffleaveapplications.entity';
 import { PerformanceCriteria } from '../entities/performancecriteria.entity';
 import { Attendance } from '../entities/attendance.entity';
+import { Fee } from '../fees/entities/fee.entity';
 
 // [
 //   "POST /leaves/apply/:staffId",
@@ -49,6 +50,7 @@ export class ClassService {
     @InjectRepository(Subjects) private subjectsRepository: Repository<Subjects>,
     @InjectRepository(Schools) private schoolsRepository: Repository<Schools>,
     @InjectRepository(Fees) private feesRepository: Repository<Fees>,
+    @InjectRepository(Fee) private feeRepository: Repository<Fee>,
     @InjectRepository(StaffQualifications) private staffQualificationsRepository: Repository<StaffQualifications>,
     @InjectRepository(Salaries) private salariesRepository: Repository<Salaries>,
     @InjectRepository(StaffAttendance) private staffAttendanceRepository: Repository<StaffAttendance>,
@@ -1549,6 +1551,46 @@ async getFeesListByClassTeacher(classTeacherId: number) {
     };
   }
 }
+
+async getFeesListBySchool(schoolId: number) {
+  if (!schoolId) {
+    return { status: 0, message: 'School ID is required' };
+  }
+
+  try {
+    const feesList = await this.feesRepository
+      .createQueryBuilder('f')
+      .select([
+        'f.id AS id',
+        'f.class_name AS class_name',
+        'f.tuition_fee AS tuition_fee',
+        'f.annual_fee AS annual_fee',
+        'f.total_fee AS total_fee',
+        'f.q1 AS q1',
+        'f.q2 AS q2',
+        'f.q3 AS q3',
+        'f.q4 AS q4',
+      ])
+      .where('f.school_id = :schoolId', { schoolId })
+      .orderBy('f.class_name', 'ASC')
+      .getRawMany();
+
+    return {
+      status: 1,
+      message: 'Fees structure retrieved successfully',
+      result: feesList,
+    };
+  } catch (error) {
+    console.error('Error fetching fees structure:', error);
+    return {
+      status: 0,
+      message: 'Failed to fetch fees structure',
+      error: error.message,
+    };
+  }
+}
+
+
 
 
 

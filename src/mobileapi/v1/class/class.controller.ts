@@ -55,11 +55,6 @@ export class ClassController {
 
 
 
-  @Post('create-new-school')
-  @HttpCode(HttpStatus.OK)
-  async createSchool(@Body() body: CreateSchoolDto) {
-    return await this.classService.createSchool(body);
-  }
 
   @HttpCode(HttpStatus.OK)
   @Get('get-all-students-by-school')
@@ -194,6 +189,21 @@ export class ClassController {
 
     return this.classService.getFeesListByClassTeacher(
       Number(userId),
+    );
+  }
+
+
+
+  @Get('get-fees-list-by-class-teacher-v2')
+  async getFeesListByClassTeacherv2(
+    @Req() req: Request,
+  ) {
+    const user = req['user'];
+    const userId = user.userId;
+    const schoolId = user.school_id;
+
+    return this.classService.getFeesListBySchool(
+      Number(1),
     );
   }
 

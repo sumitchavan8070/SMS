@@ -7,6 +7,8 @@ import { jwtConfig } from './config/jwt.config';
 import { JwtModule } from '@nestjs/jwt';
 import { AttendanceModule } from './mobileapi/v1/attendance/attendance.module';
 import { StudentsModule } from './mobileapi/v1/students/students.module';
+import { SuperadminModule } from './mobileapi/v1/superadmin/superadmin.module';
+import { FeesStructureModule } from './mobileapi/v1/fees-structure/fees-structure.module';
 
 @Module({
   imports: [
@@ -30,7 +32,10 @@ import { StudentsModule } from './mobileapi/v1/students/students.module';
 
     V1Module,
     StudentsModule,
-    AttendanceModule
+    AttendanceModule, 
+    SuperadminModule,
+        FeesStructureModule,
+
   ],
 })
 export class AppModule { }

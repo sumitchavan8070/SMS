@@ -25,6 +25,7 @@ import { Subjects } from '../entities/subjects.entity';
 import { UserProfiles } from '../entities/userprofiles.entity';
 import { Users } from '../entities/users.entity';
 import { Attendance } from '../entities/attendance.entity';
+import { Fee } from '../fees/entities/fee.entity';
 
 
 
@@ -32,22 +33,24 @@ import { Attendance } from '../entities/attendance.entity';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
-    TypeOrmModule.forFeature([User, UserProfile, Users,
-      UserProfiles,
-      Students,
-      Parents,
-      Staff,
-      Classes,
-      Roles,
-      Subjects,
-      Schools,
-      Fees,
-      StaffQualifications,
-      Salaries,
-      StaffAttendance,
-      StaffLeaveApplications,
-      Attendance, 
-      PerformanceCriteria,]),
+      TypeOrmModule.forFeature([User, UserProfile, Users,
+        UserProfiles,
+        Students,
+        Parents,
+        Staff,
+        Classes,
+        Roles,
+        Subjects,
+        Schools,
+        Fees,
+        StaffQualifications,
+        Salaries,
+        StaffAttendance,
+        StaffLeaveApplications,
+        Attendance, 
+        PerformanceCriteria,
+      Fee
+      ]),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
