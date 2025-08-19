@@ -1024,7 +1024,7 @@ async getLeavesByStaff(staffId: number, status?: string): Promise<any> {
 async getStudentsByClassAndSchool(
   classTeacherId: number,
   schoolId: number,
-  date: string, // <-- pass your manual date here
+  date: string,
 ) {
   if (!classTeacherId || !schoolId) {
     return { status: 0, message: 'Class ID and School ID are required' };
@@ -1046,14 +1046,22 @@ async getStudentsByClassAndSchool(
       .addSelect('s.roll_number', 'roll_number')
       .addSelect('c.name', 'class_name')
       .addSelect('MAX(up.full_name)', 'student_name')
+      .addSelect('up.gender', 'gender')             // extra student detail
+      .addSelect('up.date_of_birth', 'dob')         // extra student detail
+      .addSelect('up.address', 'address')           // extra student detail
       .addSelect('a.status', 'attendance_status')
       .addSelect('a.remarks', 'attendance_remarks')
+      .addSelect('a.date', 'attendance_date')       // include attendance date
       .where('c.class_teacher_id = :classId', { classId: Number(classTeacherId) })
       .groupBy('s.id')
       .addGroupBy('s.roll_number')
       .addGroupBy('c.name')
+      .addGroupBy('up.gender')
+      .addGroupBy('up.date_of_birth')
+      .addGroupBy('up.address')
       .addGroupBy('a.status')
       .addGroupBy('a.remarks')
+      .addGroupBy('a.date')
       .orderBy('s.roll_number', 'ASC')
       .getRawMany();
 
@@ -1066,7 +1074,7 @@ async getStudentsByClassAndSchool(
     return {
       status: 1,
       message: 'Students retrieved successfully',
-      date, // <-- include the requested date in response
+      date, // requested date
       totalStudents,
       presentStudents,
       absentStudents,
@@ -1082,6 +1090,7 @@ async getStudentsByClassAndSchool(
     };
   }
 }
+
 
 
 
