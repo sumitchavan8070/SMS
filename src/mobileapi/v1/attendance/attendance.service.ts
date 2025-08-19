@@ -317,9 +317,10 @@ async markAttendance(body: CreateAttendanceDto, roleId: number) {
   try {
     const student = await this.studentRepository.findOneByOrFail({ id: student_id });
 
-    // normalize to date-only string (avoid time issues)
+    // Ensure we only compare DATE (no time part)
     const normalizedDate = new Date(date).toISOString().split("T")[0];
 
+    // Find attendance entry
     let attendance = await this.attendanceRepository.findOne({
       where: { student: { id: student_id }, date: normalizedDate },
     });
@@ -327,33 +328,24 @@ async markAttendance(body: CreateAttendanceDto, roleId: number) {
     if (attendance) {
       attendance.status = status;
       attendance.remarks = remarks ?? "";
-      await this.attendanceRepository.save(attendance);
+      const updated = await this.attendanceRepository.save(attendance);
 
       return {
         status: 1,
         message: 'Attendance updated successfully',
-        data: attendance,
+        data: updated,
       };
     } else {
-      attendance = this.attendanceRepository.create({
-        student,
-        date: normalizedDate,
-        status,
-        remarks: remarks ?? "",
-      });
-
-      const saved = await this.attendanceRepository.save(attendance);
-
+      // No entry found, just return message (do NOT insert)
       return {
-        status: 1,
-        message: 'Attendance marked successfully',
-        data: saved,
+        status: 0,
+        message: `No attendance record exists for student ${student_id} on ${normalizedDate}`,
       };
     }
   } catch (error) {
     return {
       status: 0,
-      message: 'Error marking attendance',
+      message: 'Error updating attendance',
       error: error.message,
     };
   }
