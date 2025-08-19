@@ -304,23 +304,41 @@ export class AttendanceService {
 
 
 
-  async markAttendance(body: CreateAttendanceDto, roleId: number) {
-    const { student_id, date, status, remarks } = body;
+async markAttendance(body: CreateAttendanceDto, roleId: number) {
+  const { student_id, date, status, remarks } = body;
 
-    if (roleId === 5 || roleId === 6) {
+  if (roleId === 5 || roleId === 6) {
+    return {
+      status: 0,
+      message: 'You are not authorized for this task',
+    };
+  }
+
+  try {
+    const student = await this.studentRepository.findOneByOrFail({ id: student_id });
+
+    // Check if attendance already exists for this student + date
+    let attendance = await this.attendanceRepository.findOne({
+      where: { student: { id: student_id }, date },
+    });
+
+    if (attendance) {
+      // Update existing record
+      attendance.status = status;
+      attendance.remarks = remarks;
+      await this.attendanceRepository.save(attendance);
+
       return {
-        status: 0,
-        message: 'You are not authorized for this task',
+        status: 1,
+        message: 'Attendance updated successfully',
+        data: attendance,
       };
-    }
-
-    try {
-      const student = await this.studentRepository.findOneByOrFail({ id: student_id });
-
-      const attendance = this.attendanceRepository.create({
+    } else {
+      // Create new record
+      attendance = this.attendanceRepository.create({
         student,
         date,
-        status, // Must match allowed enum values
+        status,
         remarks,
       });
 
@@ -331,14 +349,16 @@ export class AttendanceService {
         message: 'Attendance marked successfully',
         data: saved,
       };
-    } catch (error) {
-      return {
-        status: 0,
-        message: 'Error marking attendance',
-        error: error.message,
-      };
     }
+  } catch (error) {
+    return {
+      status: 0,
+      message: 'Error marking attendance',
+      error: error.message,
+    };
   }
+}
+
 
 
   // markBulkAttendance

@@ -30,7 +30,7 @@ export class Attendance {
   status: "present" | "absent" | "late" | null;
 
   @Column("text", { name: "remarks", nullable: true })
-  remarks: string | null;
+  remarks?: string ;
 
   @Column("int", { name: "school_id", nullable: true })
   schoolId: number | null;
