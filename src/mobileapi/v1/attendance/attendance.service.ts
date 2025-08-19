@@ -317,15 +317,16 @@ async markAttendance(body: CreateAttendanceDto, roleId: number) {
   try {
     const student = await this.studentRepository.findOneByOrFail({ id: student_id });
 
-    // Check if attendance already exists for this student + date
+    // normalize to date-only string (avoid time issues)
+    const normalizedDate = new Date(date).toISOString().split("T")[0];
+
     let attendance = await this.attendanceRepository.findOne({
-      where: { student: { id: student_id }, date },
+      where: { student: { id: student_id }, date: normalizedDate },
     });
 
     if (attendance) {
-      // Update existing record
       attendance.status = status;
-      attendance.remarks = remarks;
+      attendance.remarks = remarks ?? "";
       await this.attendanceRepository.save(attendance);
 
       return {
@@ -334,12 +335,11 @@ async markAttendance(body: CreateAttendanceDto, roleId: number) {
         data: attendance,
       };
     } else {
-      // Create new record
       attendance = this.attendanceRepository.create({
         student,
-        date,
+        date: normalizedDate,
         status,
-        remarks,
+        remarks: remarks ?? "",
       });
 
       const saved = await this.attendanceRepository.save(attendance);
