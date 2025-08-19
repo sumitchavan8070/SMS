@@ -1031,41 +1031,35 @@ async getStudentsByClassAndSchool(
   }
 
   try {
-    const students = await this.studentsRepository
-      .createQueryBuilder('s')
-      .leftJoin('s.user', 'u')
-      .leftJoin('u.userProfiles', 'up')
-      .leftJoin('s.class', 'c')
-      .leftJoin(
-        'attendance',
-        'a',
-        'a.student_id = s.id AND a.date = :date',
-        { date }
-      )
-      .select('s.id', 'student_id')
-      .addSelect('s.roll_number', 'roll_number')
-      .addSelect('c.name', 'class_name')
-      .addSelect('MAX(up.full_name)', 'student_name')
-      .addSelect('up.gender', 'gender')             // extra student detail
-      .addSelect('up.date_of_birth', 'dob')         // extra student detail
-      .addSelect('up.address', 'address')           // extra student detail
-      .addSelect('a.status', 'attendance_status')
-      .addSelect('a.remarks', 'attendance_remarks')
-      .addSelect('a.date', 'attendance_date')       // include attendance date
-      .where('c.class_teacher_id = :classId', { classId: Number(classTeacherId) })
-      .groupBy('s.id')
-      .addGroupBy('s.roll_number')
-      .addGroupBy('c.name')
-      .addGroupBy('up.gender')
-      .addGroupBy('up.date_of_birth')
-      .addGroupBy('up.address')
-      .addGroupBy('a.status')
-      .addGroupBy('a.remarks')
-      .addGroupBy('a.date')
-      .orderBy('s.roll_number', 'ASC')
-      .getRawMany();
+   const students = await this.studentsRepository
+  .createQueryBuilder('s')
+  .leftJoin('s.user', 'u')
+  .leftJoin('u.userProfiles', 'up')
+  .leftJoin('s.class', 'c')
+  .leftJoin(
+    'attendance',
+    'a',
+    'a.student_id = s.id AND a.date = :date',
+    { date }
+  )
+  .select('s.id', 'student_id')
+  .addSelect('s.roll_number', 'roll_number')
+  .addSelect('c.name', 'class_name')
+  .addSelect('MAX(up.full_name)', 'student_name')
+  .addSelect('MAX(up.gender)', 'gender')  
+  .addSelect('MAX(up.dob)', 'dob')        
+  .addSelect('MAX(up.address)', 'address') 
+.addSelect('COALESCE(MAX(a.status), "Absent")', 'attendance_status')
+.addSelect('COALESCE(MAX(a.remarks), "")', 'attendance_remarks')
+.addSelect('COALESCE(MAX(a.date), :date)', 'attendance_date')
+  .where('c.class_teacher_id = :classId', { classId: Number(classTeacherId) })
+  .groupBy('s.id')
+  .addGroupBy('s.roll_number')
+  .addGroupBy('c.name')
+  .orderBy('s.roll_number', 'ASC')
+  .getRawMany();
 
-    // Calculate counts
+    // ✅ Calculate counts
     const totalStudents = students.length;
     const presentStudents = students.filter(s => s.attendance_status === 'present').length;
     const absentStudents = students.filter(s => s.attendance_status === 'absent').length;
@@ -1074,7 +1068,7 @@ async getStudentsByClassAndSchool(
     return {
       status: 1,
       message: 'Students retrieved successfully',
-      date, // requested date
+      date,
       totalStudents,
       presentStudents,
       absentStudents,
@@ -1090,6 +1084,7 @@ async getStudentsByClassAndSchool(
     };
   }
 }
+
 
 
 
