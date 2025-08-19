@@ -9,6 +9,7 @@ import { AttendanceModule } from './mobileapi/v1/attendance/attendance.module';
 import { StudentsModule } from './mobileapi/v1/students/students.module';
 import { SuperadminModule } from './mobileapi/v1/superadmin/superadmin.module';
 import { FeesStructureModule } from './mobileapi/v1/fees-structure/fees-structure.module';
+import { LeavesModule } from './mobileapi/v1/leaves/leaves.module';
 
 @Module({
   imports: [
@@ -34,8 +35,10 @@ import { FeesStructureModule } from './mobileapi/v1/fees-structure/fees-structur
     StudentsModule,
     AttendanceModule, 
     SuperadminModule,
-        FeesStructureModule,
+    FeesStructureModule,
+    LeavesModule,
 
+    
   ],
 })
 export class AppModule { }

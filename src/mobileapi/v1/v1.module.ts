@@ -5,11 +5,12 @@ import { ClassModule } from './class/class.module';
 import { AttendanceModule } from './attendance/attendance.module';
 import { FeesStructureModule } from './fees-structure/fees-structure.module';
 import { FeesModule } from './fees/fees.module';
+import { LeavesModule } from './leaves/leaves.module';
 
 @Module({
   imports: [
     AuthModule, // ✅ THIS IS REQUIRED
-    StudentsModule, ClassModule, AttendanceModule, FeesStructureModule, FeesModule,
+    StudentsModule, ClassModule, AttendanceModule, FeesStructureModule, FeesModule, LeavesModule,
     // ... other modules
   ],
 })

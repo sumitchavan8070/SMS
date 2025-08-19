@@ -27,10 +27,10 @@ export class StaffLeaveApplications {
   leaveTypeId: number;
 
   @Column("date", { name: "start_date" })
-  startDate: string;
+  startDate: Date;
 
   @Column("date", { name: "end_date" })
-  endDate: string;
+  endDate: Date;
 
   @Column("int", { name: "total_days" })
   totalDays: number;
