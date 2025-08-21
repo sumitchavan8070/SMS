@@ -8,7 +8,7 @@ export class FeesStructureController {
   constructor(private readonly feesService: FeesStructureService) { }
 
   @HttpCode(HttpStatus.OK)  
-  @Get("check")
+  @Get()
   async getFees(@Req() req: Request){
     const user = req['user'];
     const schooldId = user.school_id;
