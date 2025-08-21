@@ -27,11 +27,12 @@ export class TimetableService {
   /**
    * Get all timetable entries with class, subject & teacher
    */
-  async getAllTimetables() {
+  async getAllTimetables(schoolId) {
     try {
       const timetables = await this.timetableRepository.find({
         relations: ["class", "subject", "school"],
         order: { startTime: "ASC" },
+        where: { schoolId }
       });
 
       return {

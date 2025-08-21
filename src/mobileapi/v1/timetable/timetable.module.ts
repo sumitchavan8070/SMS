@@ -16,4 +16,6 @@ import { Subjects } from "../entities/subjects.entity"
   exports: [TimetableService],
 })
 
-export class TimetableModule {}
+export class TimetableModule {
+  
+}

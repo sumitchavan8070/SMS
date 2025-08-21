@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query } from "@nestjs/common"
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, Req } from "@nestjs/common"
 import { TimetableService } from "./timetable.service"
 import { CreateTimetableDto } from "./dto/create-timetable.dto"
 import { UpdateTimetableDto } from "./dto/update-timetable.dto"
@@ -11,8 +11,11 @@ export class TimetableController {
    * Get all timetable entries
    */
   @Get()
-  async getAllTimetables() {
-    return this.timetableService.getAllTimetables()
+  async getAllTimetables(@Req() req : Request) {
+
+    const user = req['user']; 
+    const schoolId = user.school_id; 
+    return this.timetableService.getAllTimetables(schoolId); 
   }
 
   /**
