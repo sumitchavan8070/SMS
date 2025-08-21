@@ -11,8 +11,9 @@ export class FeesStructureService {
   ) {}
 
   // Get all fees for a school
-  async getFeesBySchool(school_id: number): Promise<FeesStructure[]> {
+  async getFeesBySchool(school_id: number) {
     return this.feesRepo.find({ where: { school_id } });
+    
   }
 
   // Create new fee structure

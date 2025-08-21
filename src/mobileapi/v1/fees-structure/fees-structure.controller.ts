@@ -1,14 +1,20 @@
-import { Controller, Get, Param, Post, Body, Patch } from '@nestjs/common';
+import { Controller, Get, Param, Post, Body, Patch, Req, HttpCode, HttpStatus } from '@nestjs/common';
 import { FeesStructureService } from './fees-structure.service';
-import { FeesStructure } from './entities/fees-structure.entity'; 
+import { FeesStructure } from './entities/fees-structure.entity';
 
 @Controller('v1/fees-structure')
 export class FeesStructureController {
-  constructor(private feesService: FeesStructureService) {}
+  
+  constructor(private readonly feesService: FeesStructureService) { }
 
-  @Get(':school_id')
-  async getFees(@Param('school_id') school_id: number): Promise<FeesStructure[]> {
-    return this.feesService.getFeesBySchool(Number(school_id));
+  @HttpCode(HttpStatus.OK)  
+  @Get()
+  async getFees(@Req() req: Request){
+    const user = req['user'];
+    const schooldId = user.school_id;
+    console.log("School ID:", schooldId);
+
+    return this.feesService.getFeesBySchool(schooldId);
   }
 
   @Post()

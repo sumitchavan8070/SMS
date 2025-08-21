@@ -5,21 +5,21 @@ import { CreateSchoolDto } from '../class/dto/create_school.dto';
 @Controller('v1/su')
 export class SuperadminController {
 
-    constructor(private readonly superAdminService: SuperadminService) { }
+  constructor(private readonly superAdminService: SuperadminService) { }
 
 
-    @HttpCode(HttpStatus.OK)
-    @Get("check")
-    async check() {
-        return this.superAdminService.checkSuperAdmin();
-    }
+  @HttpCode(HttpStatus.OK)
+  @Get("check")
+  async check() {
+    return this.superAdminService.checkSuperAdmin();
+  }
 
-    // For create a new school 
-    @Post('create-new-school')
-    @HttpCode(HttpStatus.OK)
-    async createSchool(@Body() body: CreateSchoolDto) {
-        return await this.superAdminService.createSchool(body);
-    }
+  // For create a new school 
+  @Post('create-new-school')
+  @HttpCode(HttpStatus.OK)
+  async createSchool(@Body() body: CreateSchoolDto) {
+    return await this.superAdminService.createSchool(body);
+  }
 
   @Post('generate-password')
   async generatePassword(@Body() body: any) {
@@ -28,10 +28,10 @@ export class SuperadminController {
   }
 
 
-//   @Post('bulk-create')
-//   async bulkCreate(@Body() staffData: BulkStaffDto[]) {
-//     return this.superAdminService.bulkCreateOrUpdateStaff(staffData);
-//   }
+  //   @Post('bulk-create')
+  //   async bulkCreate(@Body() staffData: BulkStaffDto[]) {
+  //     return this.superAdminService.bulkCreateOrUpdateStaff(staffData);
+  //   }
 
 
 

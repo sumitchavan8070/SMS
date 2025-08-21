@@ -10,6 +10,7 @@ import { StudentsModule } from './mobileapi/v1/students/students.module';
 import { SuperadminModule } from './mobileapi/v1/superadmin/superadmin.module';
 import { FeesStructureModule } from './mobileapi/v1/fees-structure/fees-structure.module';
 import { LeavesModule } from './mobileapi/v1/leaves/leaves.module';
+import { TimetableModule } from './mobileapi/v1/timetable/timetable.module';
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { LeavesModule } from './mobileapi/v1/leaves/leaves.module';
     SuperadminModule,
     FeesStructureModule,
     LeavesModule,
+    TimetableModule, 
 
     
   ],

@@ -8,7 +8,7 @@ export class AuthController {
   constructor(private readonly authService: AuthService) { }
 
 
-  @HttpCode(HttpStatus.OK)
+  @HttpCode(HttpStatus.OK)  
   @Post('client-login')
   async login(@Body() loginDto: LoginDto) {
     return this.authService.login(loginDto);
@@ -25,7 +25,9 @@ export class AuthController {
   @Get('get-client-profile')
   async getClientProfile(@Req() req: Request) {
     const user = req['user'];
-    const userId = user.userId;
+    const userId = user.userId; 
+    console.log(user);
+    
 
     return await this.authService.getClientProfile(userId);
   }

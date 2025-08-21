@@ -51,7 +51,7 @@ export class AuthModule {
         { path: 'v1/auth/get-client-profile', method: RequestMethod.GET }, 
         { path: 'v1/auth/update-all-students-code', method: RequestMethod.GET }, 
 
-      );  
+      );    
     // .forRoutes('*');
   }
 }
