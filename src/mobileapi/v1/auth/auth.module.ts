@@ -21,7 +21,6 @@ import { Roles } from '../entities/roles.entity';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
     TypeOrmModule.forFeature([Users, User, UserProfile, UserProfiles, Students, Parents, Classes, Staff, Roles]),
     JwtModule.registerAsync({
       imports: [ConfigModule],
