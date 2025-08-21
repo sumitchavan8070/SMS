@@ -8,27 +8,27 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtMiddleware } from 'src/config/jwt.middleware';
 
 @Module({
-
-  imports: [TypeOrmModule.forFeature([FeesStructure]),
-  ConfigModule.forRoot({ isGlobal: true }),
-
-
-  JwtModule.registerAsync({
-    imports: [ConfigModule],
-    inject: [ConfigService],
-    useFactory: async (config: ConfigService) => ({
-      secret: process.env.JWT_SECRET || 'defaultSecret',
-      signOptions: {
-        expiresIn: process.env.JWT_EXPIRES_IN || '1d',
-      },
+  imports: [
+    TypeOrmModule.forFeature([FeesStructure]),
+    ConfigModule.forRoot({ isGlobal: true }),
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: async (config: ConfigService) => ({
+        secret: process.env.JWT_SECRET || 'defaultSecret',
+        signOptions: {
+          expiresIn: process.env.JWT_EXPIRES_IN || '1d',
+        },
+      }),
     }),
-  }),
   ],
   providers: [FeesStructureService],
   controllers: [FeesStructureController],
 })
 export class FeesStructureModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer.apply(JwtMiddleware).forRoutes('*');
+    consumer
+      .apply(JwtMiddleware)
+      .forRoutes(FeesStructureController); // ✅ only applied to this controller
   }
 }

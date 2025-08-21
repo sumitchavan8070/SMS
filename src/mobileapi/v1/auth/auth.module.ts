@@ -21,11 +21,13 @@ import { Roles } from '../entities/roles.entity';
 
 @Module({
   imports: [
+    ConfigModule.forRoot({ isGlobal: true }),
     TypeOrmModule.forFeature([Users, User, UserProfile, UserProfiles, Students, Parents, Classes, Staff, Roles]),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: async (config: ConfigService) => ({
+        
         secret: process.env.JWT_SECRET || 'defaultSecret',
         signOptions: {
           expiresIn: process.env.JWT_EXPIRES_IN || '1d',
