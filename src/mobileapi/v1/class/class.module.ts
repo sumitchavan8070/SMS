@@ -2,7 +2,7 @@ import { Module, MiddlewareConsumer, RequestMethod } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { User } from '../students/entities/user.entity';
+import { Users } from '../entities/users.entity'; 
 import { UserProfile } from '../students/entities/user-profile.entity';
 import { JwtMiddleware } from 'src/config/jwt.middleware';
 import { ClassController } from './class.controller';
@@ -23,7 +23,6 @@ import { StaffQualifications } from '../entities/staffqualifications.entity';
 import { Students } from '../entities/students.entity';
 import { Subjects } from '../entities/subjects.entity';
 import { UserProfiles } from '../entities/userprofiles.entity';
-import { Users } from '../entities/users.entity';
 import { Attendance } from '../entities/attendance.entity';
 import { Fee } from '../fees/entities/fee.entity';
 
@@ -33,7 +32,7 @@ import { Fee } from '../fees/entities/fee.entity';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
-      TypeOrmModule.forFeature([User, UserProfile, Users,
+      TypeOrmModule.forFeature([ UserProfile, Users,
         UserProfiles,
         Students,
         Parents,
@@ -49,7 +48,7 @@ import { Fee } from '../fees/entities/fee.entity';
         StaffLeaveApplications,
         Attendance, 
         PerformanceCriteria,
-      Fee
+        Fee
       ]),
     JwtModule.registerAsync({
       imports: [ConfigModule],

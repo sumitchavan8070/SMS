@@ -17,7 +17,9 @@ export class AttendanceController {
   @Get('get-attendance-by-user-and-date')
   getAttendanceByDate(@Query('date') date: string, @Req() req) {
     const user = req.user;
-    return this.attendanceService.getMonthlyAttendanceSummary(user.roleId, user.userId, date);
+    const roleId = req.roleId; 
+    const userId = req.userId; 
+    return this.attendanceService.getMonthlyAttendanceSummary(roleId,userId, date);
   }
 
 

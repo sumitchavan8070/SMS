@@ -44,7 +44,8 @@ export class ClassService {
     @InjectRepository(UserProfiles) private userProfilesRepository: Repository<UserProfiles>,
     @InjectRepository(Students) private studentsRepository: Repository<Students>,
     @InjectRepository(Parents) private parentsRepository: Repository<Parents>,
-    @InjectRepository(Staff) private staffRepository: Repository<Staff>,
+    @InjectRepository(Staff)
+    private readonly staffRepository: Repository<Staff>,
     @InjectRepository(Classes) private classesRepository: Repository<Classes>,
     @InjectRepository(Roles) private rolesRepository: Repository<Roles>,
     @InjectRepository(Subjects) private subjectsRepository: Repository<Subjects>,
@@ -1084,10 +1085,6 @@ async getStudentsByClassAndSchool(
     };
   }
 }
-
-
-
-
 
 
 

@@ -226,5 +226,16 @@ export class ClassController {
   //   return this.leaveService.updateLeaveStatus(leaveId, dto);
   // }
 
+
+//  for check only 
+  @HttpCode(HttpStatus.OK)
+  @Get('getSchoolDepartmentAnalytics')
+  async getSchoolDepartmentAnalytics(@Req() req: Request) {
+    const user = req['user'];
+    const schoolId = user.school_id;
+    return this.classService.getSchoolDepartmentAnalytics(schoolId);
+  }
+
+
 }
 

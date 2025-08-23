@@ -32,3 +32,5 @@ export class FeesStructureModule {
       .forRoutes(FeesStructureController); // ✅ only applied to this controller
   }
 }
+
+

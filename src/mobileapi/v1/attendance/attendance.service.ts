@@ -188,18 +188,13 @@ export class AttendanceService {
 
 
 
-
+//  TODO : check this its correfct or not 
 
   async getMonthlyAttendanceSummary(
     roleId: number,
     userId: number,
     date: string
-  ): Promise<{
-    status: number;
-    message: string;
-    data?: any[];
-    error?: string;
-  }> {
+  ) {
     try {
       const inputDate = new Date(date);
       if (isNaN(inputDate.getTime())) {
@@ -304,139 +299,139 @@ export class AttendanceService {
 
 
 
-async markAttendance(body: CreateAttendanceDto, roleId: number) {
-  const { student_id, date, status, remarks } = body;
+  async markAttendance(body: CreateAttendanceDto, roleId: number) {
+    const { student_id, date, status, remarks } = body;
 
-  if (roleId === 5 || roleId === 6) {
-    return {
-      status: 0,
-      message: 'You are not authorized for this task',
-    };
-  }
-
-  try {
-    const student = await this.studentRepository.findOneByOrFail({ id: student_id });
-
-    // Ensure we only compare DATE (no time part)
-    const normalizedDate = new Date(date).toISOString().split("T")[0];
-
-    // Find attendance entry
-    let attendance = await this.attendanceRepository.findOne({
-      where: { student: { id: student_id }, date: normalizedDate },
-    });
-
-    if (attendance) {
-      attendance.status = status;
-      attendance.remarks = remarks ?? "";
-      const updated = await this.attendanceRepository.save(attendance);
-
-      return {
-        status: 1,
-        message: 'Attendance updated successfully',
-        data: updated,
-      };
-    } else {
-      // No entry found, just return message (do NOT insert)
+    if (roleId === 5 || roleId === 6) {
       return {
         status: 0,
-        message: `No attendance record exists for student ${student_id} on ${normalizedDate}`,
+        message: 'You are not authorized for this task',
       };
     }
-  } catch (error) {
-    return {
-      status: 0,
-      message: 'Error updating attendance',
-      error: error.message,
-    };
+
+    try {
+      const student = await this.studentRepository.findOneByOrFail({ id: student_id });
+
+      // Ensure we only compare DATE (no time part)
+      const normalizedDate = new Date(date).toISOString().split("T")[0];
+
+      // Find attendance entry
+      let attendance = await this.attendanceRepository.findOne({
+        where: { student: { id: student_id }, date: normalizedDate },
+      });
+
+      if (attendance) {
+        attendance.status = status;
+        attendance.remarks = remarks ?? "";
+        const updated = await this.attendanceRepository.save(attendance);
+
+        return {
+          status: 1,
+          message: 'Attendance updated successfully',
+          data: updated,
+        };
+      } else {
+        // No entry found, just return message (do NOT insert)
+        return {
+          status: 0,
+          message: `No attendance record exists for student ${student_id} on ${normalizedDate}`,
+        };
+      }
+    } catch (error) {
+      return {
+        status: 0,
+        message: 'Error updating attendance',
+        error: error.message,
+      };
+    }
   }
-}
 
 
 
   // markBulkAttendance
 
 
-async markBulkAttendance(
-  body: BulkAttendanceDto,
-  roleId: number,
-  schoolId: number
-): Promise<any> {
-  // 1. Role-based access check
-  if ([5, 6].includes(roleId)) {
-    return { status: 0, message: "You are not authorized for this task" };
-  }
+  async markBulkAttendance(
+    body: BulkAttendanceDto,
+    roleId: number,
+    schoolId: number
+  ): Promise<any> {
+    // 1. Role-based access check
+    if ([5, 6].includes(roleId)) {
+      return { status: 0, message: "You are not authorized for this task" };
+    }
 
-  const studentIds = body.records.map((r) => r.student_id);
+    const studentIds = body.records.map((r) => r.student_id);
 
-  // 2. Validate students belong to this school
-  const students = await this.studentRepository.find({
-    where: { id: In(studentIds), schoolId },
-  });
+    // 2. Validate students belong to this school
+    const students = await this.studentRepository.find({
+      where: { id: In(studentIds), schoolId },
+    });
 
-  if (students.length !== studentIds.length) {
-    return {
-      status: 0,
-      message: "School ID mismatch — you are not authorized for this task",
-    };
-  }
-
-  const studentMap = new Map(students.map((s) => [s.id, s]));
-
-  // 3. Get all unique dates
-  const dates = [...new Set(body.records.map((r) => r.date))];
-
-  // 4. Fetch already existing attendance
-  const existingAttendance = await this.attendanceRepository.find({
-    where: {
-      student: { id: In(studentIds) },
-      date: In(dates),
-      schoolId,
-    },
-    relations: ["student"],
-  });
-
-  if (existingAttendance.length > 0) {
-    // Pick the first duplicate date to show in message
-    const firstDate = existingAttendance[0].date;
-    return {
-      status: 0,
-      message: `Attendance for ${firstDate} has already been submitted`,
-    };
-  }
-
-  // 5. Prepare attendance list
-  const attendancesToSave: Attendance[] = [];
-
-  for (const r of body.records) {
-    const student = studentMap.get(r.student_id);
-    if (!student) {
+    if (students.length !== studentIds.length) {
       return {
         status: 0,
-        message: "Student not found in this school",
+        message: "School ID mismatch — you are not authorized for this task",
       };
     }
 
-    attendancesToSave.push(
-      this.attendanceRepository.create({
-        student,
-        date: r.date,
-        status: r.status,
-        remarks: r.remarks,
+    const studentMap = new Map(students.map((s) => [s.id, s]));
+
+    // 3. Get all unique dates
+    const dates = [...new Set(body.records.map((r) => r.date))];
+
+    // 4. Fetch already existing attendance
+    const existingAttendance = await this.attendanceRepository.find({
+      where: {
+        student: { id: In(studentIds) },
+        date: In(dates),
         schoolId,
-      })
-    );
-  }
+      },
+      relations: ["student"],
+    });
 
-  // 6. Save attendance
-  if (attendancesToSave.length) {
-    await this.attendanceRepository.save(attendancesToSave);
-  }
+    if (existingAttendance.length > 0) {
+      // Pick the first duplicate date to show in message
+      const firstDate = existingAttendance[0].date;
+      return {
+        status: 0,
+        message: `Attendance for ${firstDate} has already been submitted`,
+      };
+    }
 
-  return {
-    status: 1,
-    message: "Bulk attendance processed",
-  };
-}
+    // 5. Prepare attendance list
+    const attendancesToSave: Attendance[] = [];
+
+    for (const r of body.records) {
+      const student = studentMap.get(r.student_id);
+      if (!student) {
+        return {
+          status: 0,
+          message: "Student not found in this school",
+        };
+      }
+
+      attendancesToSave.push(
+        this.attendanceRepository.create({
+          student,
+          date: r.date,
+          status: r.status,
+          remarks: r.remarks,
+          schoolId,
+        })
+      );
+    }
+
+    // 6. Save attendance
+    if (attendancesToSave.length) {
+      await this.attendanceRepository.save(attendancesToSave);
+    }
+
+    return {
+      status: 1,
+      message: "Bulk attendance processed",
+    };
+  }
 
 
 
