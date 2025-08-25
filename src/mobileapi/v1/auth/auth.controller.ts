@@ -26,6 +26,7 @@ export class AuthController {
   async getClientProfile(@Req() req: Request) {
     const user = req['user'];
     const userId = user.userId; 
+    const schoolId = user.school_id; 
     console.log(user);
     
 

@@ -427,15 +427,56 @@ export class AuthService {
 
 
 
+  // async getClientProfile(userId: number): Promise<any> {
+  //   if (!userId) {
+  //     return { status: 0, message: 'User ID is required.' };
+  //   }
+
+  //   try {
+  //     const profile = await this.userProfilesRepository.findOne({
+  //       where: { user: { id: userId } },
+  //       relations: ['user', 'user.role', 'user.school', "user."], // get school via user
+  //     });
+
+  //     if (!profile) {
+  //       return { status: 0, message: 'User profile not found.' };
+  //     }
+
+
+  //     return {
+  //       status: 1,
+  //       message: 'Profile fetched successfully.',
+
+  //       profile: profile, 
+  //     };
+  //   } catch (error) {
+  //     console.error('💥 Error fetching user profile:', error);
+  //     return {
+  //       status: 0,
+  //       message: 'Internal server error.',
+  //       error: error.message,
+  //     };
+  //   }
+  // }
+
+
   async getClientProfile(userId: number): Promise<any> {
     if (!userId) {
       return { status: 0, message: 'User ID is required.' };
     }
 
     try {
+      // Fetch profile with nested relations
       const profile = await this.userProfilesRepository.findOne({
         where: { user: { id: userId } },
-        relations: ['user', 'user.role'],
+        relations: [
+          'user',           // basic user info
+          'user.role',      // user role
+          'user.school',    // school
+          'user.salaries',      // optional extra relation
+          'user.leaves',      // optional extra relation
+          'user.fee',      // optional extra relation
+          ],
       });
 
       if (!profile) {
@@ -444,20 +485,13 @@ export class AuthService {
 
       const { user } = profile;
 
+      // Return structured JSON
       return {
         status: 1,
-        message: 'User profile fetched successfully.',
-        profile: {
-          id: profile.id,
-          fullName: profile.fullName,
-          gender: profile.gender,
-          dob: profile.dob,
-          address: profile.address,
-          phone: profile.phone,
-          username: user.username,
-          email: user.email,
-          role_name: user.role?.name || null,
-        },
+        message: 'Profile fetched successfully.',
+
+        profile,
+     
       };
     } catch (error) {
       console.error('💥 Error fetching user profile:', error);
@@ -468,8 +502,6 @@ export class AuthService {
       };
     }
   }
-
-
 
 
   async updateClientProfile(userId: number, roleId: number, body: any): Promise<any> {
@@ -584,50 +616,50 @@ export class AuthService {
   }
 
 
-async updateAllStudentCodes(): Promise<any> {
-  try {
-    const students = await this.studentsRepository
-      .createQueryBuilder('s')
-      .leftJoinAndSelect('s.user', 'u')
-      .leftJoinAndSelect('s.class', 'c')
-      .select([
-        's.id',
-        's.userId',
-        's.classId',
-        's.admissionDate',
-        's.rollNumber',
-        'u.roleId',
-        'c.name',
-      ])
-      .getMany();
+  async updateAllStudentCodes(): Promise<any> {
+    try {
+      const students = await this.studentsRepository
+        .createQueryBuilder('s')
+        .leftJoinAndSelect('s.user', 'u')
+        .leftJoinAndSelect('s.class', 'c')
+        .select([
+          's.id',
+          's.userId',
+          's.classId',
+          's.admissionDate',
+          's.rollNumber',
+          'u.roleId',
+          'c.name',
+        ])
+        .getMany();
 
-    for (const student of students) {
-      const { user, classId, admissionDate, rollNumber, class: classEntity } = student;
+      for (const student of students) {
+        const { user, classId, admissionDate, rollNumber, class: classEntity } = student;
 
-      const admissionYear = new Date(String(admissionDate)).getFullYear();
-      const cleanedClassName = classEntity.name.replace(/class\s*/i, '').replace(/\s+/g, '');
+        const admissionYear = new Date(String(admissionDate)).getFullYear();
+        const cleanedClassName = classEntity.name.replace(/class\s*/i, '').replace(/\s+/g, '');
 
-      const studentCode = await this.generateUserCode(
-        Number(user.roleId),
-        admissionYear,
-        cleanedClassName,
-        rollNumber,
-      );
+        const studentCode = await this.generateUserCode(
+          Number(user.roleId),
+          admissionYear,
+          cleanedClassName,
+          rollNumber,
+        );
 
-      student.studentCode = studentCode;
-      await this.studentsRepository.save(student);
+        student.studentCode = studentCode;
+        await this.studentsRepository.save(student);
 
-      console.log(`✅ Updated student_code for user_id ${user.id}: ${studentCode}`);
+        console.log(`✅ Updated student_code for user_id ${user.id}: ${studentCode}`);
+      }
+
+      console.log('🎉 All student codes updated.');
+      return { status: 1, message: 'All student codes updated successfully.' };
+
+    } catch (error) {
+      console.error('❌ Failed to update student codes:', error);
+      return { status: 0, message: 'Failed to update student codes.', error: error.message };
     }
-
-    console.log('🎉 All student codes updated.');
-    return { status: 1, message: 'All student codes updated successfully.' };
-
-  } catch (error) {
-    console.error('❌ Failed to update student codes:', error);
-    return { status: 0, message: 'Failed to update student codes.', error: error.message };
   }
-}
 
 
 

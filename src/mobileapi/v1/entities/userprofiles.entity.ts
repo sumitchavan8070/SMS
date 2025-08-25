@@ -7,6 +7,7 @@ import {
   PrimaryGeneratedColumn,
 } from "typeorm";
 import { Users } from "./users.entity";
+import { Schools } from "./schools.entity";
 
 @Index("user_id", ["userId"], {})
 @Entity("user_profiles", { schema: "sms" })
@@ -32,10 +33,11 @@ export class UserProfiles {
   @Column("varchar", { name: "phone", nullable: true, length: 255 })
   phone: string | null;
 
-  @ManyToOne(() => Users, (users) => users.userProfiles, {
+  @ManyToOne(() => Users, (user) => user.userProfiles, {
     onDelete: "NO ACTION",
     onUpdate: "NO ACTION",
   })
+  
   @JoinColumn([{ name: "user_id", referencedColumnName: "id" }])
   user: Users;
 }

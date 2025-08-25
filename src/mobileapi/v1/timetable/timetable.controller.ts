@@ -5,7 +5,7 @@ import { UpdateTimetableDto } from "./dto/update-timetable.dto"
 
 @Controller("v1/timetable")
 export class TimetableController {
-  constructor(private readonly timetableService: TimetableService) {}
+  constructor(private readonly timetableService: TimetableService) { }
 
   /**
    * Get all timetable entries
@@ -15,6 +15,8 @@ export class TimetableController {
 
     const user = req['user']; 
     const schoolId = user.school_id; 
+    console.log(user);
+    
     return this.timetableService.getAllTimetables(schoolId); 
   }
 
@@ -37,6 +39,7 @@ export class TimetableController {
   /**
    * Create a new timetable entry
    */
+
   @Post()
   async createTimetableEntry(@Body() createTimetableDto: CreateTimetableDto) {
     return this.timetableService.createTimetableEntry(createTimetableDto)
